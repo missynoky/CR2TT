@@ -69,11 +69,10 @@ public class Main implements Callable<Integer> {
 
     @Override
     public Integer call() {
-
         Logger.init(verbose);
-        Logger.info("starting rdf12-reif conversion process.");
-
         Validator validator = new Validator(inputFile, outputFile, validateOnly, allowAssertingConversion, mode);
+
+        Logger.info("starting rdf12-reif conversion process.");
 
         boolean initialValidatorResult = validator.initialValidator();
         if (!initialValidatorResult) {
