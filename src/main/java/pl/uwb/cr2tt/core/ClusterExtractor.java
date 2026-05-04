@@ -3,12 +3,16 @@ package pl.uwb.cr2tt.core;
 import org.apache.jena.rdf.model.*;
 import org.apache.jena.vocabulary.RDF;
 import pl.uwb.cr2tt.model.Cluster;
+import pl.uwb.cr2tt.model.result.ExtractionResult;
+import pl.uwb.cr2tt.model.result.SortResult;
 import pl.uwb.cr2tt.utils.Logger;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
 
 public class ClusterExtractor {
 
@@ -87,6 +91,7 @@ public class ClusterExtractor {
                     return;
                 }
 
+                Logger.info("extracted metadata for node " + c.getLocalName() + ": property '" + p.getLocalName() + "'");
                 metadata.add(stmt);
             });
 
@@ -100,8 +105,120 @@ public class ClusterExtractor {
 
             validClusters.add(cluster);
 
+            Logger.info("node " + c.getLocalName() + " successfully extracted and validated as a cluster.");
         }
-
+        Logger.info("extraction complete. Successfully found " + validClusters.size() + " valid classic reification clusters.");
         return validClusters;
     }
+
+    public SortResult topologicalSort(List<Cluster> validClusters) {
+        Logger.info("starting bottom-up topological sort for " + validClusters.size() + " clusters.");
+
+        List<Cluster> sortedClusters = new ArrayList<>();
+        List<Cluster> cycles = new ArrayList<>();
+
+        Map<Resource, Cluster> clusterMap = new HashMap<>();
+
+        for (Cluster c : validClusters) {
+            clusterMap.put(c.getReifier(), c);
+        }
+
+        Logger.info("built index map for " + clusterMap.size() + " clusters. Starting dependency analysis.");
+
+        Map<Cluster, Integer> states = new HashMap<>();
+
+        for (Cluster c : validClusters) {
+            if (!states.containsKey(c)) {
+                dfs(c, states, clusterMap, sortedClusters, cycles);
+            }
+        }
+
+        if (!cycles.isEmpty()) {
+            Logger.warn("detected " + cycles.size() + " clusters involved in cycles. They will be skipped.");
+        }
+        Logger.info("topological sort complete. Successfully sorted " + sortedClusters.size() + " clusters.");
+
+        return new SortResult(sortedClusters, cycles);
+    }
+
+    private boolean dfs(Cluster current, Map<Cluster, Integer> states,
+                        Map<Resource, Cluster> clusterMap,
+                        List<Cluster> sortedClusters, List<Cluster> cycles) {
+
+        int state = states.getOrDefault(current, 0);
+
+        if (state == 1) {
+            if (!cycles.contains(current)) cycles.add(current);
+            Logger.warn("cycle detected involving cluster with reifier: " + current.getReifier().getLocalName());
+            return false;
+        }
+
+        if (state == 2) {
+            return true;
+        }
+
+        Logger.info("analyzing cluster: " + current.getReifier().getLocalName());
+        states.put(current, 1);
+
+        boolean hasCycle = false;
+
+        if (clusterMap.containsKey(current.getSubject())) {
+            Logger.info("cluster " + current.getReifier().getLocalName() + " depends on subject " + current.getSubject().getLocalName());
+            if (!dfs(clusterMap.get(current.getSubject()), states, clusterMap, sortedClusters, cycles))
+                hasCycle = true;
+        }
+
+        if (current.getObject().isResource() && clusterMap.containsKey(current.getObject().asResource())) {
+            Logger.info("cluster " + current.getReifier().getLocalName() + " depends on object " + current.getObject().asResource().getLocalName());
+            if (!dfs(clusterMap.get(current.getObject().asResource()), states, clusterMap, sortedClusters, cycles))
+                hasCycle = true;
+        }
+
+        for (Statement stmt : current.getMetadata()) {
+            if (stmt.getObject().isResource() && clusterMap.containsKey(stmt.getObject().asResource())) {
+                Logger.info("cluster " + current.getReifier().getLocalName() + " depends on metadata object " + stmt.getObject().asResource().getLocalName());
+                if (!dfs(clusterMap.get(stmt.getObject().asResource()), states, clusterMap, sortedClusters, cycles))
+                    hasCycle = true;
+            }
+        }
+
+        states.put(current, 2);
+
+        if (hasCycle) {
+            if (!cycles.contains(current)) cycles.add(current);
+            Logger.warn("cluster " + current.getReifier().getLocalName() + " rejected due to a cycle deep in its dependencies.");
+            return false;
+        } else {
+            sortedClusters.add(current);
+            Logger.info("cluster " + current.getReifier().getLocalName() + " fully resolved and added to sorted list.");
+            return true;
+        }
+    }
+
+    public ExtractionResult processGraph(Model inGraph) {
+        Logger.info("starting phase 1: extraction and sorting");
+
+        List<Cluster> validCluster = extractClusters(inGraph);
+
+        SortResult sortResult = topologicalSort(validCluster);
+        List<Cluster> sortedCluster = sortResult.getSortedClusters();
+
+        Logger.info("building core graph by removing classic reification triples.");
+
+        for(Cluster c: sortedCluster) {
+            inGraph.removeAll(c.getReifier(), RDF.subject, c.getSubject());
+            inGraph.removeAll(c.getReifier(), RDF.predicate, c.getPredicate());
+            inGraph.removeAll(c.getReifier(), RDF.object, c.getObject());
+            inGraph.removeAll(c.getReifier(), RDF.type, RDF.Statement);
+
+            for (Statement stmt : c.getMetadata()) {
+                inGraph.remove(stmt);
+            }
+        }
+
+        Logger.info("core graph ready. phase 1 complete.");
+
+        return new ExtractionResult(sortedCluster, inGraph);
+    }
+
 }

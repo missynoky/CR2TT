@@ -3,6 +3,8 @@ package pl.uwb.cr2tt.cli;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.riot.RDFDataMgr;
 import pl.uwb.cr2tt.model.BaseTriplePolicy;
 import pl.uwb.cr2tt.model.ConversionMode;
 import pl.uwb.cr2tt.utils.Logger;
@@ -71,15 +73,25 @@ public class Main implements Callable<Integer> {
     public Integer call() {
         Logger.init(verbose);
         Validator validator = new Validator(inputFile, outputFile, validateOnly, allowAssertingConversion, mode);
+        Model inGraph;
 
         Logger.info("starting rdf12-reif conversion process.");
 
         boolean initialValidatorResult = validator.initialValidator();
         if (!initialValidatorResult) {
+            Logger.error("Initial validation failed. Aborting.");
             return -1;
         }
 
-        // TODO: flaga verbose - przebieg konwersji
+        Logger.info("loading graph from input file.");
+        try {
+            inGraph = RDFDataMgr.loadModel(inputFile.getAbsolutePath());
+        } catch (Exception e) {
+            Logger.error("Failed to parse the input file as RDF: " + e.getMessage());
+            return -1;
+        }
+
+        Logger.info("successfully loaded " + inGraph.size() + " triples into the model.");
 
         return 0;
     }
