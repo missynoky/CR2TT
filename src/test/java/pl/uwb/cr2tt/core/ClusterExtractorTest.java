@@ -40,7 +40,7 @@ public class ClusterExtractorTest {
         void shouldReturnEmptyListWhenGraphIsEmpty() {
             Model inGraph = ModelFactory.createDefaultModel();
 
-            List<Cluster> result = clusterExtractor.extractClusters(inGraph);
+            List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
 
             assertTrue(result.isEmpty(), "Should return an empty list when the input graph is empty");
         }
@@ -55,7 +55,7 @@ public class ClusterExtractorTest {
 
             inGraph.add(michael, likes, dogs);
 
-            List<Cluster> result = clusterExtractor.extractClusters(inGraph);
+            List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
 
             assertTrue(result.isEmpty(), "Should ignore triples that are not related to reification");
         }
@@ -78,7 +78,7 @@ public class ClusterExtractorTest {
 
             @Test
             void shouldSuccessfullyExtractValidCluster() {
-                List<Cluster> result = clusterExtractor.extractClusters(inGraph);
+                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
 
                 assertEquals(1, result.size(), "Should extract exactly 1 valid cluster");
             }
@@ -87,7 +87,7 @@ public class ClusterExtractorTest {
             void shouldSuccessfullyExtractClusterWithoutOptionalType() {
                 inGraph.removeAll(reifier, RDF.type, RDF.Statement);
 
-                List<Cluster> result = clusterExtractor.extractClusters(inGraph);
+                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
 
                 assertEquals(1, result.size(), "Should extract cluster even if rdf:type is missing");
             }
@@ -96,7 +96,7 @@ public class ClusterExtractorTest {
             void shouldSkipClusterWithMissingSubject() {
                 inGraph.removeAll(reifier, RDF.subject, null);
 
-                List<Cluster> result = clusterExtractor.extractClusters(inGraph);
+                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
 
                 assertTrue(result.isEmpty(), "Should skip cluster with 0 subjects");
             }
@@ -105,7 +105,7 @@ public class ClusterExtractorTest {
             void shouldSkipClusterWithMultipleSubjects() {
                 inGraph.add(reifier, RDF.subject, inGraph.createResource(ns + "Peter"));
 
-                List<Cluster> result = clusterExtractor.extractClusters(inGraph);
+                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
 
                 assertTrue(result.isEmpty(), "Should skip cluster with multiple subjects");
             }
@@ -115,7 +115,7 @@ public class ClusterExtractorTest {
             void shouldSkipClusterWithMissingPredicate() {
                 inGraph.removeAll(reifier, RDF.predicate, null);
 
-                List<Cluster> result = clusterExtractor.extractClusters(inGraph);
+                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
 
                 assertTrue(result.isEmpty(), "Should skip cluster with 0 predicates");
             }
@@ -124,7 +124,7 @@ public class ClusterExtractorTest {
             void shouldSkipClusterWithMultiplePredicates() {
                 inGraph.add(reifier, RDF.predicate, inGraph.createProperty(ns + "has"));
 
-                List<Cluster> result = clusterExtractor.extractClusters(inGraph);
+                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
 
                 assertTrue(result.isEmpty(), "Should skip cluster with multiple predicates");
             }
@@ -134,7 +134,7 @@ public class ClusterExtractorTest {
             void shouldSkipClusterWithMissingObject() {
                 inGraph.removeAll(reifier, RDF.object, null);
 
-                List<Cluster> result = clusterExtractor.extractClusters(inGraph);
+                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
 
                 assertTrue(result.isEmpty(), "Should skip cluster with 0 objects");
             }
@@ -143,7 +143,7 @@ public class ClusterExtractorTest {
             void shouldSkipClusterWithMultipleObjects() {
                 inGraph.add(reifier, RDF.object, inGraph.createResource(ns + "cats"));
 
-                List<Cluster> result = clusterExtractor.extractClusters(inGraph);
+                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
 
                 assertTrue(result.isEmpty(), "Should skip cluster with multiple objects");
             }
@@ -157,7 +157,7 @@ public class ClusterExtractorTest {
                 inGraph.removeAll(reifier, RDF.subject, null);
                 inGraph.add(reifier, RDF.subject, inGraph.createLiteral("Plain text"));
 
-                List<Cluster> result = clusterExtractor.extractClusters(inGraph);
+                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
 
                 assertTrue(result.isEmpty(), "Should skip cluster if rdf:subject is a Literal");
             }
@@ -167,7 +167,7 @@ public class ClusterExtractorTest {
                 inGraph.removeAll(reifier, RDF.predicate, null);
                 inGraph.add(reifier, RDF.predicate, inGraph.createResource());
 
-                List<Cluster> result = clusterExtractor.extractClusters(inGraph);
+                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
 
                 assertTrue(result.isEmpty(), "Should skip cluster if rdf:predicate is a Blank Node");
             }
@@ -177,7 +177,7 @@ public class ClusterExtractorTest {
                 inGraph.removeAll(reifier, RDF.predicate, null);
                 inGraph.add(reifier, RDF.predicate, inGraph.createLiteral("likes"));
 
-                List<Cluster> result = clusterExtractor.extractClusters(inGraph);
+                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
 
                 assertTrue(result.isEmpty(), "Should skip cluster if rdf:predicate is a Literal");
             }
@@ -187,7 +187,7 @@ public class ClusterExtractorTest {
                 inGraph.removeAll(reifier, RDF.object, null);
                 inGraph.add(reifier, RDF.object, inGraph.createTypedLiteral(30));
 
-                List<Cluster> result = clusterExtractor.extractClusters(inGraph);
+                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
 
                 assertEquals(1, result.size(), "Should extract cluster when rdf:object is a Literal");
             }
@@ -197,7 +197,7 @@ public class ClusterExtractorTest {
                 inGraph.removeAll(reifier, RDF.object, null);
                 inGraph.add(reifier, RDF.object, inGraph.createResource());
 
-                List<Cluster> result = clusterExtractor.extractClusters(inGraph);
+                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
 
                 assertEquals(1, result.size(), "Should extract cluster when rdf:object is a Blank Node");
             }
@@ -214,7 +214,7 @@ public class ClusterExtractorTest {
                 inGraph.add(reifier, dateProp, "2023-10-25");
                 inGraph.add(reifier, authorProp, "Admin");
 
-                List<Cluster> result = clusterExtractor.extractClusters(inGraph);
+                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
 
                 assertEquals(1, result.size());
                 Cluster cluster = result.getFirst();
@@ -224,7 +224,7 @@ public class ClusterExtractorTest {
 
             @Test
             void shouldHaveEmptyMetadataWhenOnlyStandardPropertiesExist() {
-                List<Cluster> result = clusterExtractor.extractClusters(inGraph);
+                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
 
                 assertEquals(1, result.size());
 
@@ -343,7 +343,7 @@ public class ClusterExtractorTest {
             Resource dogs = inGraph.createResource(ns + "dogs");
             inGraph.add(unrelated, likes, dogs);
 
-            ExtractionResult result = clusterExtractor.processGraph(inGraph);
+            ExtractionResult result = clusterExtractor.extractClusters(inGraph);
 
             assertEquals(1, result.getClusters().size());
 
@@ -370,7 +370,7 @@ public class ClusterExtractorTest {
             inGraph.add(r2, RDF.predicate, p);
             inGraph.add(r2, RDF.object, inGraph.createResource(ns + "B"));
 
-            ExtractionResult result = clusterExtractor.processGraph(inGraph);
+            ExtractionResult result = clusterExtractor.extractClusters(inGraph);
 
             assertTrue(result.getClusters().isEmpty(), "Clusters in cycle should not be in sorted list");
 

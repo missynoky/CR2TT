@@ -16,7 +16,7 @@ import java.util.HashMap;
 
 public class ClusterExtractor {
 
-    public List<Cluster> extractClusters(Model inGraph) {
+    public List<Cluster> findValidClusters(Model inGraph) {
         Logger.info("starting extraction of classic reification clusters");
         // Clusters_raw <- Nodes in G_in with any rdf:{subject, predicate, object, Statement}
         Set<Resource> rawClusters = new HashSet<>();
@@ -195,10 +195,10 @@ public class ClusterExtractor {
         }
     }
 
-    public ExtractionResult processGraph(Model inGraph) {
+    public ExtractionResult extractClusters(Model inGraph) {
         Logger.info("starting phase 1: extraction and sorting");
 
-        List<Cluster> validCluster = extractClusters(inGraph);
+        List<Cluster> validCluster = findValidClusters(inGraph);
 
         SortResult sortResult = topologicalSort(validCluster);
         List<Cluster> sortedCluster = sortResult.getSortedClusters();
