@@ -18,7 +18,7 @@ public class ExtractionResult {
         return clusters;
     }
 
-    public Model getgCore() {
+    public Model getGCore() {
         return gCore;
     }
 }
