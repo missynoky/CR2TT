@@ -332,7 +332,7 @@ public class ClusterExtractorTest {
         }
 
         @Test
-        void shouldCleanGraphAndReturnClusters() {
+        void shouldExtractClustersAndLeaveGraphUntouched() {
             Resource reifier = createBaseCluster(inGraph);
 
             Property author = inGraph.createProperty(ns + "author");
@@ -346,17 +346,18 @@ public class ClusterExtractorTest {
             ExtractionResult result = clusterExtractor.processGraph(inGraph);
 
             assertEquals(1, result.getClusters().size());
-            Model gCore = result.getGCore();
 
-            assertEquals(1, gCore.size(), "Gcore should only contain triples that are not part of reification");
-            assertTrue(gCore.contains(unrelated, likes, dogs), "Gcore must preserve unrelated data");
+            Model originalGraph = result.getGCore();
 
-            assertFalse(gCore.contains(reifier, RDF.subject, (RDFNode) null), "Reification subject should be removed");
-            assertFalse(gCore.contains(reifier, author, "Admin"), "Metadata should be removed");
+            assertEquals(6, originalGraph.size(), "Input graph should remain completely untouched");
+            assertTrue(originalGraph.contains(unrelated, likes, dogs), "Graph must preserve unrelated data");
+
+            assertTrue(originalGraph.contains(reifier, RDF.subject, (RDFNode) null), "Reification subject should NOT be removed yet");
+            assertTrue(originalGraph.contains(reifier, author, "Admin"), "Metadata should NOT be removed yet");
         }
 
         @Test
-        void shouldHandleCyclesByLeavingThemInGcore() {
+        void shouldHandleCyclesAndLeaveGraphUntouched() {
             Resource r1 = inGraph.createResource(ns + "stmt1");
             Resource r2 = inGraph.createResource(ns + "stmt2");
             Property p = inGraph.createProperty(ns + "p");
@@ -372,7 +373,8 @@ public class ClusterExtractorTest {
             ExtractionResult result = clusterExtractor.processGraph(inGraph);
 
             assertTrue(result.getClusters().isEmpty(), "Clusters in cycle should not be in sorted list");
-            assertEquals(6, result.getGCore().size(), "Cycles should remain in Gcore as they were not processed");
+
+            assertEquals(6, result.getGCore().size(), "Input graph should remain completely untouched even with cycles");
         }
     }
 }

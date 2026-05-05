@@ -36,7 +36,7 @@ public class Main implements Callable<Integer> {
 
     @Option(
             names = {"--mode"},
-            defaultValue = "reified_triple_expanded",
+            defaultValue = "REIFIED_TRIPLE_EXPANDED",
             description = "Selection of the target RDF 1.2 form. " +
                     "Available modes: ${COMPLETION-CANDIDATES}. " +
                     "Default: ${DEFAULT-VALUE}."
@@ -45,7 +45,7 @@ public class Main implements Callable<Integer> {
 
     @Option(
             names = {"--base-triple-policy"},
-            defaultValue = "preserve",
+            defaultValue = "PRESERVE",
             description = "Controls if the reified triple (s p o) must already exist in the input as an assertion. " +
                     "Values: ${COMPLETION-CANDIDATES}. Default: ${DEFAULT-VALUE}."
     )

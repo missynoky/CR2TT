@@ -59,7 +59,7 @@ public class Validator {
             }
         }
 
-        if (allowAssertingConversion && !mode.name().startsWith("annotated")) {
+        if (allowAssertingConversion && !mode.name().startsWith("ANNOTATED")) {
             Logger.warn("--allow-asserting-conversion flag was provided, but it has no effect for mode: " + mode);
         }
 

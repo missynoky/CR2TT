@@ -203,20 +203,7 @@ public class ClusterExtractor {
         SortResult sortResult = topologicalSort(validCluster);
         List<Cluster> sortedCluster = sortResult.getSortedClusters();
 
-        Logger.info("building core graph by removing classic reification triples.");
-
-        for(Cluster c: sortedCluster) {
-            inGraph.removeAll(c.getReifier(), RDF.subject, c.getSubject());
-            inGraph.removeAll(c.getReifier(), RDF.predicate, c.getPredicate());
-            inGraph.removeAll(c.getReifier(), RDF.object, c.getObject());
-            inGraph.removeAll(c.getReifier(), RDF.type, RDF.Statement);
-
-            for (Statement stmt : c.getMetadata()) {
-                inGraph.remove(stmt);
-            }
-        }
-
-        Logger.info("core graph ready. phase 1 complete.");
+        Logger.info("phase 1 complete.");
 
         return new ExtractionResult(sortedCluster, inGraph);
     }

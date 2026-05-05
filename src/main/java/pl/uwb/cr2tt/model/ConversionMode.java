@@ -1,10 +1,10 @@
 package pl.uwb.cr2tt.model;
 
 public enum ConversionMode {
-    reified_triple_expanded,
-    reified_triple,
-    reified_triple_explicit,
-    annotated_triple,
-    annotated_triple_explicit,
-    annotated_triple_expanded
+    REIFIED_TRIPLE_EXPANDED,
+    REIFIED_TRIPLE,
+    REIFIED_TRIPLE_EXPLICIT,
+    ANNOTATED_TRIPLE,
+    ANNOTATED_TRIPLE_EXPLICIT,
+    ANNOTATED_TRIPLE_EXPANDED
 }
