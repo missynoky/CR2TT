@@ -1,8 +1,9 @@
 package pl.uwb.cr2tt.core;
 
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.graph.Node;
+import org.apache.jena.graph.NodeFactory;
+import org.apache.jena.rdf.model.*;
+import org.apache.jena.vocabulary.RDF;
 import pl.uwb.cr2tt.model.Cluster;
 import pl.uwb.cr2tt.model.ConversionMode;
 
@@ -11,12 +12,21 @@ public class ClusterConverter {
     public void convertCluster(Cluster cluster, ConversionMode mode, Model outGraph) {
         switch (mode) {
             case REIFIED_TRIPLE_EXPANDED:
-                Statement baseStatement = outGraph.createStatement(
-                        cluster.getSubject(),
-                        cluster.getPredicate(),
-                        cluster.getObject()
-                );
+                Node sNode = cluster.getSubject().asNode();
+                Node pNode = cluster.getPredicate().asNode();
+                Node oNode = cluster.getObject().asNode();
 
+                Node tripleTermNode = NodeFactory.createTripleTerm(sNode, pNode, oNode);
+
+                RDFNode tripleTerm = outGraph.asRDFNode(tripleTermNode);
+
+                Property rdfReifies = RDF.reifies;
+
+                outGraph.add(cluster.getReifier(), rdfReifies, tripleTerm);
+
+                for (Statement metaStmt : cluster.getMetadata()) {
+                    outGraph.add(metaStmt);
+                }
                 break;
 
             case REIFIED_TRIPLE:
