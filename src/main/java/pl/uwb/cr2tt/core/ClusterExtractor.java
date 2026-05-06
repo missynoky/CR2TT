@@ -91,7 +91,6 @@ public class ClusterExtractor {
                     return;
                 }
 
-                Logger.info("extracted metadata for node " + c.getLocalName() + ": property '" + p.getLocalName() + "'");
                 metadata.add(stmt);
             });
 
@@ -105,7 +104,6 @@ public class ClusterExtractor {
 
             validClusters.add(cluster);
 
-            Logger.info("node " + c.getLocalName() + " successfully extracted and validated as a cluster.");
         }
         Logger.info("extraction complete. Successfully found " + validClusters.size() + " valid classic reification clusters.");
         return validClusters;
@@ -149,7 +147,6 @@ public class ClusterExtractor {
 
         if (state == 1) {
             if (!cycles.contains(current)) cycles.add(current);
-            Logger.warn("cycle detected involving cluster with reifier: " + current.getReifier().getLocalName());
             return false;
         }
 
@@ -157,26 +154,22 @@ public class ClusterExtractor {
             return true;
         }
 
-        Logger.info("analyzing cluster: " + current.getReifier().getLocalName());
         states.put(current, 1);
 
         boolean hasCycle = false;
 
         if (clusterMap.containsKey(current.getSubject())) {
-            Logger.info("cluster " + current.getReifier().getLocalName() + " depends on subject " + current.getSubject().getLocalName());
             if (!dfs(clusterMap.get(current.getSubject()), states, clusterMap, sortedClusters, cycles))
                 hasCycle = true;
         }
 
         if (current.getObject().isResource() && clusterMap.containsKey(current.getObject().asResource())) {
-            Logger.info("cluster " + current.getReifier().getLocalName() + " depends on object " + current.getObject().asResource().getLocalName());
             if (!dfs(clusterMap.get(current.getObject().asResource()), states, clusterMap, sortedClusters, cycles))
                 hasCycle = true;
         }
 
         for (Statement stmt : current.getMetadata()) {
             if (stmt.getObject().isResource() && clusterMap.containsKey(stmt.getObject().asResource())) {
-                Logger.info("cluster " + current.getReifier().getLocalName() + " depends on metadata object " + stmt.getObject().asResource().getLocalName());
                 if (!dfs(clusterMap.get(stmt.getObject().asResource()), states, clusterMap, sortedClusters, cycles))
                     hasCycle = true;
             }
@@ -186,11 +179,9 @@ public class ClusterExtractor {
 
         if (hasCycle) {
             if (!cycles.contains(current)) cycles.add(current);
-            Logger.warn("cluster " + current.getReifier().getLocalName() + " rejected due to a cycle deep in its dependencies.");
             return false;
         } else {
             sortedClusters.add(current);
-            Logger.info("cluster " + current.getReifier().getLocalName() + " fully resolved and added to sorted list.");
             return true;
         }
     }

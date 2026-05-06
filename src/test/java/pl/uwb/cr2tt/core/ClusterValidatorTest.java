@@ -22,7 +22,6 @@ public class ClusterValidatorTest {
     private Property p;
     private RDFNode o;
     private Cluster baseCluster;
-    private List<Cluster> singleClusterList;
 
     @BeforeEach
     void setUp() {
@@ -34,7 +33,9 @@ public class ClusterValidatorTest {
         o = inGraph.createResource(ns + "dogs");
 
         baseCluster = createTestCluster(s, p, o);
-        singleClusterList = List.of(baseCluster);
+        List<Cluster> singleClusterList = List.of(baseCluster);
+
+        validator.initialize(singleClusterList);
     }
 
     private Cluster createTestCluster(Resource s, Property p, RDFNode o) {
@@ -53,11 +54,12 @@ public class ClusterValidatorTest {
             Cluster c2 = createTestCluster(s, p, o);
             List<Cluster> doubleClusterList = List.of(baseCluster, c2);
 
+            validator.initialize(doubleClusterList);
+
             ClusterValidator.FatalValidationException exception = assertThrows(
                     ClusterValidator.FatalValidationException.class,
                     () -> validator.validateCluster(
                             baseCluster,
-                            doubleClusterList,
                             inGraph,
                             ConversionMode.REIFIED_TRIPLE,
                             null,
@@ -72,9 +74,10 @@ public class ClusterValidatorTest {
             Cluster c2 = createTestCluster(s, p, o);
             List<Cluster> doubleClusterList = List.of(baseCluster, c2);
 
+            validator.initialize(doubleClusterList);
+
             assertDoesNotThrow(() -> validator.validateCluster(
                     baseCluster,
-                    doubleClusterList,
                     inGraph,
                     ConversionMode.REIFIED_TRIPLE_EXPLICIT,
                     null,
@@ -86,7 +89,6 @@ public class ClusterValidatorTest {
         void shouldPassWhenSingleReificationInImplicitMode() {
             assertDoesNotThrow(() -> validator.validateCluster(
                     baseCluster,
-                    singleClusterList,
                     inGraph,
                     ConversionMode.REIFIED_TRIPLE,
                     null,
@@ -103,7 +105,7 @@ public class ClusterValidatorTest {
             ClusterValidator.FatalValidationException exception = assertThrows(
                     ClusterValidator.FatalValidationException.class,
                     () -> validator.validateCluster(
-                            baseCluster, singleClusterList, inGraph, ConversionMode.REIFIED_TRIPLE,
+                            baseCluster, inGraph, ConversionMode.REIFIED_TRIPLE,
                             BaseTriplePolicy.REQUIRE, false
                     )
             );
@@ -115,7 +117,7 @@ public class ClusterValidatorTest {
             inGraph.add(s, p, o);
 
             assertDoesNotThrow(() -> validator.validateCluster(
-                    baseCluster, singleClusterList, inGraph, ConversionMode.REIFIED_TRIPLE,
+                    baseCluster, inGraph, ConversionMode.REIFIED_TRIPLE,
                     BaseTriplePolicy.REQUIRE, false
             ));
         }
@@ -127,7 +129,7 @@ public class ClusterValidatorTest {
             ClusterValidator.FatalValidationException exception = assertThrows(
                     ClusterValidator.FatalValidationException.class,
                     () -> validator.validateCluster(
-                            baseCluster, singleClusterList, inGraph, ConversionMode.REIFIED_TRIPLE,
+                            baseCluster, inGraph, ConversionMode.REIFIED_TRIPLE,
                             BaseTriplePolicy.FORBID_EXTRA_ASSERTED, false
                     )
             );
@@ -137,7 +139,7 @@ public class ClusterValidatorTest {
         @Test
         void shouldPassWhenPolicyForbidExtraAssertedAndTripleMissing() {
             assertDoesNotThrow(() -> validator.validateCluster(
-                    baseCluster, singleClusterList, inGraph, ConversionMode.REIFIED_TRIPLE,
+                    baseCluster, inGraph, ConversionMode.REIFIED_TRIPLE,
                     BaseTriplePolicy.FORBID_EXTRA_ASSERTED, false
             ));
         }
@@ -151,7 +153,7 @@ public class ClusterValidatorTest {
             ClusterValidator.FatalValidationException exception = assertThrows(
                     ClusterValidator.FatalValidationException.class,
                     () -> validator.validateCluster(
-                            baseCluster, singleClusterList, inGraph,
+                            baseCluster, inGraph,
                             ConversionMode.ANNOTATED_TRIPLE,
                             null,
                             false
@@ -163,7 +165,7 @@ public class ClusterValidatorTest {
         @Test
         void shouldPassWhenAssertingModeAndTripleMissingButAllowedByFlag() {
             assertDoesNotThrow(() -> validator.validateCluster(
-                    baseCluster, singleClusterList, inGraph,
+                    baseCluster, inGraph,
                     ConversionMode.ANNOTATED_TRIPLE_EXPLICIT,
                     null,
                     true
@@ -175,7 +177,7 @@ public class ClusterValidatorTest {
             inGraph.add(s, p, o);
 
             assertDoesNotThrow(() -> validator.validateCluster(
-                    baseCluster, singleClusterList, inGraph,
+                    baseCluster, inGraph,
                     ConversionMode.ANNOTATED_TRIPLE_EXPANDED,
                     null,
                     false
@@ -185,7 +187,7 @@ public class ClusterValidatorTest {
         @Test
         void shouldPassWhenNotAssertingMode() {
             assertDoesNotThrow(() -> validator.validateCluster(
-                    baseCluster, singleClusterList, inGraph,
+                    baseCluster, inGraph,
                     ConversionMode.REIFIED_TRIPLE,
                     null,
                     false
@@ -203,10 +205,12 @@ public class ClusterValidatorTest {
             Statement meta = inGraph.createStatement(iriReifier, metaProp, "val");
             Cluster iriCluster = new Cluster(iriReifier, s, p, o, Set.of(meta));
 
+            validator.initialize(List.of(iriCluster));
+
             ClusterValidator.FatalValidationException exception = assertThrows(
                     ClusterValidator.FatalValidationException.class,
                     () -> validator.validateCluster(
-                            iriCluster, List.of(iriCluster), inGraph,
+                            iriCluster, inGraph,
                             ConversionMode.REIFIED_TRIPLE,
                             null,
                             false
@@ -224,7 +228,7 @@ public class ClusterValidatorTest {
             ClusterValidator.FatalValidationException exception = assertThrows(
                     ClusterValidator.FatalValidationException.class,
                     () -> validator.validateCluster(
-                            baseCluster, singleClusterList, inGraph,
+                            baseCluster, inGraph,
                             ConversionMode.ANNOTATED_TRIPLE,
                             null,
                             true
@@ -238,10 +242,12 @@ public class ClusterValidatorTest {
             Resource bNodeReifier = inGraph.createResource();
             Cluster noMetaCluster = new Cluster(bNodeReifier, s, p, o, Set.of());
 
+            validator.initialize(List.of(noMetaCluster));
+
             ClusterValidator.FatalValidationException exception = assertThrows(
                     ClusterValidator.FatalValidationException.class,
                     () -> validator.validateCluster(
-                            noMetaCluster, List.of(noMetaCluster), inGraph,
+                            noMetaCluster, inGraph,
                             ConversionMode.REIFIED_TRIPLE,
                             null,
                             false
@@ -255,8 +261,10 @@ public class ClusterValidatorTest {
             Resource iriReifier = inGraph.createResource(ns + "stmt1");
             Cluster badCluster = new Cluster(iriReifier, s, p, o, Set.of());
 
+            validator.initialize(List.of(badCluster));
+
             assertDoesNotThrow(() -> validator.validateCluster(
-                    badCluster, List.of(badCluster), inGraph,
+                    badCluster, inGraph,
                     ConversionMode.REIFIED_TRIPLE_EXPLICIT,
                     null,
                     false
@@ -268,10 +276,12 @@ public class ClusterValidatorTest {
             Resource bNodeReifier = inGraph.createResource();
             Cluster noMetaCluster = new Cluster(bNodeReifier, s, p, o, Set.of());
 
+            validator.initialize(List.of(noMetaCluster));
+
             ClusterValidator.FatalValidationException exception = assertThrows(
                     ClusterValidator.FatalValidationException.class,
                     () -> validator.validateCluster(
-                            noMetaCluster, List.of(noMetaCluster), inGraph,
+                            noMetaCluster, inGraph,
                             ConversionMode.ANNOTATED_TRIPLE_EXPLICIT,
                             null,
                             true
@@ -283,7 +293,7 @@ public class ClusterValidatorTest {
         @Test
         void shouldPassWhenAnnotatedExplicitAndHasMetadata() {
             assertDoesNotThrow(() -> validator.validateCluster(
-                    baseCluster, singleClusterList, inGraph,
+                    baseCluster, inGraph,
                     ConversionMode.ANNOTATED_TRIPLE_EXPLICIT,
                     null,
                     true

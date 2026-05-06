@@ -83,15 +83,17 @@ public class Main implements Callable<Integer> {
             return -1;
         }
 
-        Logger.info("loading graph from input file.");
-        try {
-            inGraph = RDFDataMgr.loadModel(inputFile.getAbsolutePath());
-        } catch (Exception e) {
-            Logger.error("Failed to parse the input file as RDF: " + e.getMessage());
-            return -1;
-        }
+        // TODO: add logger in validator
 
-        Logger.info("successfully loaded " + inGraph.size() + " triples into the model.");
+//        Logger.info("loading graph from input file.");
+//        try {
+//            inGraph = RDFDataMgr.loadModel(inputFile.getAbsolutePath());
+//        } catch (Exception e) {
+//            Logger.error("Failed to parse the input file as RDF: " + e.getMessage());
+//            return -1;
+//        }
+//
+//        Logger.info("successfully loaded " + inGraph.size() + " triples into the model.");
 
         return 0;
     }
