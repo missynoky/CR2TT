@@ -1,7 +1,5 @@
 package pl.uwb.cr2tt.core;
 
-import org.apache.jena.graph.Node;
-import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.rdf.model.*;
 import org.apache.jena.vocabulary.RDF;
 import pl.uwb.cr2tt.model.Cluster;
@@ -9,27 +7,25 @@ import pl.uwb.cr2tt.model.ConversionMode;
 
 
 public class ClusterConverter {
-    public void convertCluster(Cluster cluster, ConversionMode mode, Model outGraph) {
+    public Model convertCluster(Cluster cluster, ConversionMode mode) {
+        Model outModel = ModelFactory.createDefaultModel();
+
+        Statement baseStmt;
+        StatementTerm tripleTerm;
+
         switch (mode) {
-            case REIFIED_TRIPLE_EXPANDED:
-                Node sNode = cluster.getSubject().asNode();
-                Node pNode = cluster.getPredicate().asNode();
-                Node oNode = cluster.getObject().asNode();
+            case REIFIED_TRIPLE_EXPANDED, REIFIED_TRIPLE:
+                baseStmt = outModel.createStatement(
+                        cluster.getSubject(),
+                        cluster.getPredicate(),
+                        cluster.getObject()
+                );
 
-                Node tripleTermNode = NodeFactory.createTripleTerm(sNode, pNode, oNode);
+                tripleTerm = outModel.createStatementTerm(baseStmt);
 
-                RDFNode tripleTerm = outGraph.asRDFNode(tripleTermNode);
+                outModel.add(cluster.getReifier(), RDF.reifies, tripleTerm);
 
-                Property rdfReifies = RDF.reifies;
-
-                outGraph.add(cluster.getReifier(), rdfReifies, tripleTerm);
-
-                for (Statement metaStmt : cluster.getMetadata()) {
-                    outGraph.add(metaStmt);
-                }
-                break;
-
-            case REIFIED_TRIPLE:
+                cluster.getMetadata().forEach(outModel::add);
                 break;
 
             case REIFIED_TRIPLE_EXPLICIT:
@@ -47,5 +43,6 @@ public class ClusterConverter {
             default:
                 throw new IllegalArgumentException("Unsupported conversion mode: " + mode);
         }
+        return outModel;
     }
 }

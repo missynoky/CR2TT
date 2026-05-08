@@ -186,17 +186,14 @@ public class ClusterExtractor {
         }
     }
 
-    public ExtractionResult extractClusters(Model inGraph) {
+    public List<Cluster> extractClusters(Model inGraph) {
         Logger.info("starting phase 1: extraction and sorting");
-
         List<Cluster> validCluster = findValidClusters(inGraph);
-
         SortResult sortResult = topologicalSort(validCluster);
-        List<Cluster> sortedCluster = sortResult.getSortedClusters();
-
+        List<Cluster> sortedClusters = sortResult.getSortedClusters();
         Logger.info("phase 1 complete.");
 
-        return new ExtractionResult(sortedCluster, inGraph);
+        return sortedClusters;
     }
 
 }
