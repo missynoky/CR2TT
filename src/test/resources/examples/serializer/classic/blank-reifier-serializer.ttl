@@ -1,0 +1,68 @@
+@prefix ex:   <http://example.org/> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+_:b1 a rdf:Statement ;
+    rdf:subject ex:Jan ;
+    rdf:predicate ex:knows ;
+    rdf:object ex:Anna ;
+    ex:accordingTo ex:Source1 .
+
+_:b2 a rdf:Statement ;
+    rdf:subject ex:Piotr ;
+    rdf:predicate ex:worksAt ;
+    rdf:object ex:TechCorp ;
+    ex:since "2010"^^xsd:gYear .
+
+_:b3 a rdf:Statement ;
+    rdf:subject ex:Mary ;
+    rdf:predicate ex:loves ;
+    rdf:object ex:Coffee ;
+    ex:confidence 0.95 ;
+    ex:source ex:Survey2023 .
+
+_:b4 a rdf:Statement ;
+    rdf:subject ex:Adam ;
+    rdf:predicate ex:livesIn ;
+    rdf:object ex:Warsaw ;
+    ex:verifiedBy ex:Admin .
+
+_:b5 a rdf:Statement ;
+    rdf:subject ex:Alice ;
+    rdf:predicate ex:created ;
+    rdf:object ex:ProjectX ;
+    ex:date "2023-01-01"^^xsd:date .
+
+_:b6 a rdf:Statement ;
+    rdf:subject ex:Bob ;
+    rdf:predicate ex:visited ;
+    rdf:object ex:Berlin ;
+    ex:accordingTo ex:Bob ;
+    ex:date "2022-05-20"^^xsd:date ;
+    ex:mode ex:Train .
+
+_:b7 a rdf:Statement ;
+    rdf:subject ex:Car1 ;
+    rdf:predicate ex:belongsTo ;
+    rdf:object ex:User5 ;
+    ex:status ex:Confirmed .
+
+_:b8 a rdf:Statement ;
+    rdf:subject ex:Product2 ;
+    rdf:predicate ex:hasPrice ;
+    rdf:object 19.99 ;
+    ex:currency "USD" ;
+    ex:source ex:ShopA .
+
+_:b9 a rdf:Statement ;
+    rdf:subject ex:Sun ;
+    rdf:predicate ex:risesIn ;
+    rdf:object ex:East ;
+    ex:observedBy ex:Station1 .
+
+_:b10 a rdf:Statement ;
+    rdf:subject ex:Earth ;
+    rdf:predicate ex:orbits ;
+    rdf:object ex:Sun ;
+    ex:factType ex:Scientific ;
+    ex:theory ex:Heliocentrism .

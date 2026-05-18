@@ -1,7 +1,6 @@
 package pl.uwb.cr2tt.core;
 
 import org.apache.jena.rdf.model.*;
-import org.apache.jena.vocabulary.RDF;
 import pl.uwb.cr2tt.model.Cluster;
 import pl.uwb.cr2tt.model.ConversionMode;
 
@@ -11,21 +10,40 @@ public class ClusterConverter {
         Model outModel = ModelFactory.createDefaultModel();
 
         Statement baseStmt;
-        StatementTerm tripleTerm;
 
         switch (mode) {
-            case REIFIED_TRIPLE_EXPANDED, REIFIED_TRIPLE:
+            case REIFIED_TRIPLE_EXPANDED:
                 baseStmt = outModel.createStatement(
                         cluster.getSubject(),
                         cluster.getPredicate(),
                         cluster.getObject()
                 );
 
-                tripleTerm = outModel.createStatementTerm(baseStmt);
+                outModel.createReifier(cluster.getReifier(), baseStmt);
 
-                outModel.add(cluster.getReifier(), RDF.reifies, tripleTerm);
+                for (Statement metaStmt : cluster.getMetadata()) {
+                    outModel.add(metaStmt);
+                }
+                break;
 
-                cluster.getMetadata().forEach(outModel::add);
+            case REIFIED_TRIPLE:
+                baseStmt = outModel.createStatement(
+                        cluster.getSubject(),
+                        cluster.getPredicate(),
+                        cluster.getObject()
+                );
+
+                Resource anonReifier = outModel.createReifier(baseStmt);
+
+                for (Statement metaStmt : cluster.getMetadata()) {
+                    outModel.add(
+                            outModel.createStatement(
+                                    anonReifier,
+                                    metaStmt.getPredicate(),
+                                    metaStmt.getObject()
+                            )
+                    );
+                }
                 break;
 
             case REIFIED_TRIPLE_EXPLICIT:

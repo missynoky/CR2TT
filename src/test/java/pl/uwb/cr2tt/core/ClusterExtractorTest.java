@@ -6,7 +6,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import pl.uwb.cr2tt.model.Cluster;
-import pl.uwb.cr2tt.model.result.ExtractionResult;
 import pl.uwb.cr2tt.model.result.SortResult;
 
 import java.util.HashSet;
@@ -322,59 +321,4 @@ public class ClusterExtractorTest {
         }
     }
 
-//    @Nested
-//    class ProcessGraphTests {
-//        private Model inGraph;
-//
-//        @BeforeEach
-//        void setUpGraph() {
-//            inGraph = ModelFactory.createDefaultModel();
-//        }
-//
-//        @Test
-//        void shouldExtractClustersAndLeaveGraphUntouched() {
-//            Resource reifier = createBaseCluster(inGraph);
-//
-//            Property author = inGraph.createProperty(ns + "author");
-//            inGraph.add(reifier, author, "Admin");
-//
-//            Resource unrelated = inGraph.createResource(ns + "unrelated");
-//            Property likes = inGraph.createProperty(ns + "likes");
-//            Resource dogs = inGraph.createResource(ns + "dogs");
-//            inGraph.add(unrelated, likes, dogs);
-//
-//            ExtractionResult result = clusterExtractor.extractClusters(inGraph);
-//
-//            assertEquals(1, result.getClusters().size());
-//
-//            Model originalGraph = result.getGCore();
-//
-//            assertEquals(6, originalGraph.size(), "Input graph should remain completely untouched");
-//            assertTrue(originalGraph.contains(unrelated, likes, dogs), "Graph must preserve unrelated data");
-//
-//            assertTrue(originalGraph.contains(reifier, RDF.subject, (RDFNode) null), "Reification subject should NOT be removed yet");
-//            assertTrue(originalGraph.contains(reifier, author, "Admin"), "Metadata should NOT be removed yet");
-//        }
-//
-//        @Test
-//        void shouldHandleCyclesAndLeaveGraphUntouched() {
-//            Resource r1 = inGraph.createResource(ns + "stmt1");
-//            Resource r2 = inGraph.createResource(ns + "stmt2");
-//            Property p = inGraph.createProperty(ns + "p");
-//
-//            inGraph.add(r1, RDF.subject, inGraph.createResource(ns + "A"));
-//            inGraph.add(r1, RDF.predicate, p);
-//            inGraph.add(r1, RDF.object, r2);
-//
-//            inGraph.add(r2, RDF.subject, r1);
-//            inGraph.add(r2, RDF.predicate, p);
-//            inGraph.add(r2, RDF.object, inGraph.createResource(ns + "B"));
-//
-//            ExtractionResult result = clusterExtractor.extractClusters(inGraph);
-//
-//            assertTrue(result.getClusters().isEmpty(), "Clusters in cycle should not be in sorted list");
-//
-//            assertEquals(6, result.getGCore().size(), "Input graph should remain completely untouched even with cycles");
-//        }
-//    }
 }

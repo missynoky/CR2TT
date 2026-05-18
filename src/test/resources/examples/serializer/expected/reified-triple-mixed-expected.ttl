@@ -1,0 +1,15 @@
+VERSION "1.2"
+PREFIX ex: <http://example.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+<< ex:Jan ex:knows ex:Anna >> ex:confidence 0.9 .
+
+ex:CompanyA ex:location ex:Warsaw ;
+            ex:founded "2000"^^xsd:gYear .
+
+_:b2 ex:name "Piotr" ;
+     ex:age 30 ;
+     ex:worksFor ex:CompanyA .
+
+ex:Warsaw a ex:City .

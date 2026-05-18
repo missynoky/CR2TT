@@ -3,7 +3,6 @@ package pl.uwb.cr2tt.core;
 import org.apache.jena.rdf.model.*;
 import org.apache.jena.vocabulary.RDF;
 import pl.uwb.cr2tt.model.Cluster;
-import pl.uwb.cr2tt.model.result.ExtractionResult;
 import pl.uwb.cr2tt.model.result.SortResult;
 import pl.uwb.cr2tt.utils.Logger;
 
@@ -18,7 +17,7 @@ public class ClusterExtractor {
 
     public List<Cluster> findValidClusters(Model inGraph) {
         Logger.info("starting extraction of classic reification clusters");
-        // Clusters_raw <- Nodes in G_in with any rdf:{subject, predicate, object, Statement}
+
         Set<Resource> rawClusters = new HashSet<>();
 
         inGraph.listSubjectsWithProperty(RDF.subject).forEachRemaining(rawClusters::add);
@@ -28,10 +27,8 @@ public class ClusterExtractor {
 
         Logger.info("found " + rawClusters.size() + " potential reification nodes.");
 
-        // Clusters_valid <- ∅
         List<Cluster> validClusters = new ArrayList<>();
 
-        // foreach C in Clusters_raw do
         for (Resource c : rawClusters) {
 
             List<Statement> subjectStmts = c.listProperties(RDF.subject).toList();
@@ -40,22 +37,22 @@ public class ClusterExtractor {
             List<Statement> typeStmts = inGraph.listStatements(c, RDF.type, RDF.Statement).toList();
 
             if (subjectStmts.size() != 1) {
-                Logger.warn("node " + c.getLocalName() + " skipped: Must have exactly one rdf:subject (found " + subjectStmts.size() + ")");
+                Logger.warn("node " + c.getLocalName() + " skipped: Must have exactly one rdf:subject");
                 continue;
             }
 
             if (predicateStmts.size() != 1) {
-                Logger.warn("node " + c.getLocalName() + " skipped: Must have exactly one rdf:predicate (found " + predicateStmts.size() + ")");
+                Logger.warn("node " + c.getLocalName() + " skipped: Must have exactly one rdf:predicate");
                 continue;
             }
 
             if (objectStmts.size() != 1) {
-                Logger.warn("node " + c.getLocalName() + " skipped: Must have exactly one rdf:object (found " + objectStmts.size() + ")");
+                Logger.warn("node " + c.getLocalName() + " skipped: Must have exactly one rdf:object");
                 continue;
             }
 
             if (typeStmts.size() > 1) {
-                Logger.warn("node " + c.getLocalName() + " skipped: Max one optional rdf:type rdf:Statement (found " + typeStmts.size() + ")");
+                Logger.warn("node " + c.getLocalName() + " skipped: Max one optional rdf:type rdf:Statement");
                 continue;
             }
 

@@ -1,0 +1,29 @@
+VERSION "1.2"
+PREFIX ex: <http://example.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+<< ex:Jan ex:knows ex:Anna >> ex:accordingTo ex:Source1 .
+
+<< ex:Piotr ex:worksAt ex:TechCorp >> ex:since "2010"^^xsd:gYear .
+
+<< ex:Mary ex:loves ex:Coffee >> ex:confidence 0.95 ;
+    ex:source ex:Survey2023 .
+
+<< ex:Adam ex:livesIn ex:Warsaw >> ex:verifiedBy ex:Admin .
+
+<< ex:Alice ex:created ex:ProjectX >> ex:date "2023-01-01"^^xsd:date .
+
+<< ex:Bob ex:visited ex:Berlin >> ex:accordingTo ex:Bob ;
+    ex:date "2022-05-20"^^xsd:date ;
+    ex:mode ex:Train .
+
+<< ex:Car1 ex:belongsTo ex:User5 >> ex:status ex:Confirmed .
+
+<< ex:Product2 ex:hasPrice 19.99 >> ex:currency "USD" ;
+    ex:source ex:ShopA .
+
+<< ex:Sun ex:risesIn ex:East >> ex:observedBy ex:Station1 .
+
+<< ex:Earth ex:orbits ex:Sun >> ex:factType ex:Scientific ;
+    ex:theory ex:Heliocentrism .

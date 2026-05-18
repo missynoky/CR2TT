@@ -66,7 +66,7 @@ public class ClusterValidatorTest {
                             false
                     )
             );
-            assertTrue(exception.getMessage().contains("multiple reifications"));
+            assertTrue(exception.getMessage().contains("Multiple reifications"));
         }
 
         @Test

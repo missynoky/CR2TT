@@ -25,7 +25,7 @@ public class ClusterValidator {
         long n = multiplicityMap.getOrDefault(fact, 0L);
 
         if (n > 1 && (mode == ConversionMode.REIFIED_TRIPLE || mode == ConversionMode.ANNOTATED_TRIPLE)) {
-            throw new FatalValidationException("multiple reifications for same triple require explicit mode.");
+            throw new FatalValidationException("Multiple reifications for same triple require explicit mode.");
         }
 
 
