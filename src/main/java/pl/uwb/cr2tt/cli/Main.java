@@ -78,7 +78,7 @@ public class Main implements Callable<Integer> {
 
         boolean initialValidatorResult = validator.initialValidator();
         if (!initialValidatorResult) {
-            Logger.error("Initial validation failed. Aborting.");
+            Logger.error("initial validation failed. Aborting.");
             return -1;
         }
 

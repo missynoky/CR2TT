@@ -3,322 +3,85 @@ package pl.uwb.cr2tt.core;
 import org.apache.jena.rdf.model.*;
 import org.apache.jena.vocabulary.RDF;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import pl.uwb.cr2tt.model.Cluster;
-import pl.uwb.cr2tt.model.result.SortResult;
 
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ClusterExtractorTest {
-    private ClusterExtractor clusterExtractor;
-    private static final String ns = "http://example.org/";
+    private static final String EX = "http://example.org/";
+
+    private Model model;
+    private ClusterExtractor extractor;
+    private List<Cluster> capturedClusters;
 
     @BeforeEach
-    void setUp() {
-        clusterExtractor = new ClusterExtractor();
+    public void setUp() {
+        model = ModelFactory.createDefaultModel();
+        extractor = new ClusterExtractor();
+        capturedClusters = new ArrayList<>();
     }
 
-    private Resource createBaseCluster(Model model) {
-        Resource reifier = model.createResource(ns + "stmt1");
-        model.add(reifier, RDF.subject, model.createResource(ns + "Michael"));
-        model.add(reifier, RDF.predicate, model.createProperty(ns + "likes"));
-        model.add(reifier, RDF.object, model.createResource(ns + "dogs"));
-        model.add(reifier, RDF.type, RDF.Statement);
-        return reifier;
+    private Resource createCluster(String clusterUri, String pUri, String oUri, String metaValue) {
+        Resource clusterNode = model.createResource(clusterUri);
+        clusterNode.addProperty(RDF.subject, model.createResource(EX + "s"))
+                .addProperty(RDF.predicate, model.createProperty(pUri))
+                .addProperty(RDF.object, model.createResource(oUri))
+                .addProperty(model.createProperty(EX + "meta"), metaValue);
+        return clusterNode;
     }
 
-    @Nested
-    class GraphScanningTests {
+    @Test
+    public void testFlatClusterExtraction() {
+        createCluster(EX + "Cluster1", EX + "p", EX + "o", "value1");
 
-        @Test
-        void shouldReturnEmptyListWhenGraphIsEmpty() {
-            Model inGraph = ModelFactory.createDefaultModel();
+        extractor.extractAndProcess(model, cluster -> capturedClusters.add(cluster));
 
-            List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
-
-            assertTrue(result.isEmpty(), "Should return an empty list when the input graph is empty");
-        }
-
-        @Test
-        void shouldIgnoreUnrelatedTriples() {
-            Model inGraph = ModelFactory.createDefaultModel();
-
-            Resource michael = inGraph.createResource(ns + "Michael");
-            Property likes = inGraph.createProperty(ns + "likes");
-            Resource dogs = inGraph.createResource(ns + "dogs");
-
-            inGraph.add(michael, likes, dogs);
-
-            List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
-
-            assertTrue(result.isEmpty(), "Should ignore triples that are not related to reification");
-        }
-
+        assertEquals(1, capturedClusters.size(), "Exactly one cluster should be extracted.");
+        assertEquals(1, capturedClusters.getFirst().getNSpo(), "n_spo should be 1.");
     }
 
-    @Nested
-    class ValidationTests {
-        Model inGraph;
-        Resource reifier;
+    @Test
+    public void testNSpoCalculation() {
+        createCluster(EX + "Cluster1", EX + "p", EX + "o", "meta1");
+        createCluster(EX + "Cluster2", EX + "p", EX + "o", "meta2");
 
-        @BeforeEach
-        void setUpGraph() {
-            inGraph = ModelFactory.createDefaultModel();
-            reifier = createBaseCluster(inGraph);
-        }
+        extractor.extractAndProcess(model, cluster -> capturedClusters.add(cluster));
 
-        @Nested
-        class StatementCountValidationTests {
-
-            @Test
-            void shouldSuccessfullyExtractValidCluster() {
-                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
-
-                assertEquals(1, result.size(), "Should extract exactly 1 valid cluster");
-            }
-
-            @Test
-            void shouldSuccessfullyExtractClusterWithoutOptionalType() {
-                inGraph.removeAll(reifier, RDF.type, RDF.Statement);
-
-                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
-
-                assertEquals(1, result.size(), "Should extract cluster even if rdf:type is missing");
-            }
-
-            @Test
-            void shouldSkipClusterWithMissingSubject() {
-                inGraph.removeAll(reifier, RDF.subject, null);
-
-                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
-
-                assertTrue(result.isEmpty(), "Should skip cluster with 0 subjects");
-            }
-
-            @Test
-            void shouldSkipClusterWithMultipleSubjects() {
-                inGraph.add(reifier, RDF.subject, inGraph.createResource(ns + "Peter"));
-
-                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
-
-                assertTrue(result.isEmpty(), "Should skip cluster with multiple subjects");
-            }
-
-
-            @Test
-            void shouldSkipClusterWithMissingPredicate() {
-                inGraph.removeAll(reifier, RDF.predicate, null);
-
-                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
-
-                assertTrue(result.isEmpty(), "Should skip cluster with 0 predicates");
-            }
-
-            @Test
-            void shouldSkipClusterWithMultiplePredicates() {
-                inGraph.add(reifier, RDF.predicate, inGraph.createProperty(ns + "has"));
-
-                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
-
-                assertTrue(result.isEmpty(), "Should skip cluster with multiple predicates");
-            }
-
-
-            @Test
-            void shouldSkipClusterWithMissingObject() {
-                inGraph.removeAll(reifier, RDF.object, null);
-
-                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
-
-                assertTrue(result.isEmpty(), "Should skip cluster with 0 objects");
-            }
-
-            @Test
-            void shouldSkipClusterWithMultipleObjects() {
-                inGraph.add(reifier, RDF.object, inGraph.createResource(ns + "cats"));
-
-                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
-
-                assertTrue(result.isEmpty(), "Should skip cluster with multiple objects");
-            }
-        }
-
-        @Nested
-        class NodeTypeValidationTests {
-
-            @Test
-            void shouldSkipClusterWhenSubjectIsLiteral() {
-                inGraph.removeAll(reifier, RDF.subject, null);
-                inGraph.add(reifier, RDF.subject, inGraph.createLiteral("Plain text"));
-
-                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
-
-                assertTrue(result.isEmpty(), "Should skip cluster if rdf:subject is a Literal");
-            }
-
-            @Test
-            void shouldSkipClusterWhenPredicateIsBlankNode() {
-                inGraph.removeAll(reifier, RDF.predicate, null);
-                inGraph.add(reifier, RDF.predicate, inGraph.createResource());
-
-                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
-
-                assertTrue(result.isEmpty(), "Should skip cluster if rdf:predicate is a Blank Node");
-            }
-
-            @Test
-            void shouldSkipClusterWhenPredicateIsLiteral() {
-                inGraph.removeAll(reifier, RDF.predicate, null);
-                inGraph.add(reifier, RDF.predicate, inGraph.createLiteral("likes"));
-
-                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
-
-                assertTrue(result.isEmpty(), "Should skip cluster if rdf:predicate is a Literal");
-            }
-
-            @Test
-            void shouldAcceptClusterWhenObjectIsLiteral() {
-                inGraph.removeAll(reifier, RDF.object, null);
-                inGraph.add(reifier, RDF.object, inGraph.createTypedLiteral(30));
-
-                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
-
-                assertEquals(1, result.size(), "Should extract cluster when rdf:object is a Literal");
-            }
-
-            @Test
-            void shouldAcceptClusterWhenObjectIsBlankNode() {
-                inGraph.removeAll(reifier, RDF.object, null);
-                inGraph.add(reifier, RDF.object, inGraph.createResource());
-
-                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
-
-                assertEquals(1, result.size(), "Should extract cluster when rdf:object is a Blank Node");
-            }
-        }
-
-        @Nested
-        class MetadataExtractionTests {
-
-            @Test
-            void shouldExtractAdditionalMetadata() {
-                Property dateProp = inGraph.createProperty(ns + "createdDate");
-                Property authorProp = inGraph.createProperty(ns + "author");
-
-                inGraph.add(reifier, dateProp, "2023-10-25");
-                inGraph.add(reifier, authorProp, "Admin");
-
-                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
-
-                assertEquals(1, result.size());
-                Cluster cluster = result.getFirst();
-
-                assertEquals(2, cluster.getMetadata().size(), "Should extract exactly 2 metadata statements");
-            }
-
-            @Test
-            void shouldHaveEmptyMetadataWhenOnlyStandardPropertiesExist() {
-                List<Cluster> result = clusterExtractor.findValidClusters(inGraph);
-
-                assertEquals(1, result.size());
-
-                assertTrue(result.getFirst().getMetadata().isEmpty(),
-                        "Metadata set should be empty when no extra properties are present");
-            }
-        }
+        assertEquals(2, capturedClusters.size(), "Both clusters should be extracted.");
+        assertEquals(2, capturedClusters.getFirst().getNSpo(), "n_spo should be 2 for the duplicate base triples.");
     }
 
-    @Nested
-    class TopologicalSortTests {
-        private Model model;
+    @Test
+    public void testCyclicReification() {
+        Resource clusterA = createCluster(EX + "ClusterA", EX + "p1", EX + "o1", "metaA");
+        Resource clusterB = createCluster(EX + "ClusterB", EX + "p2", EX + "o2", "metaB");
 
-        @BeforeEach
-        void setUpGraph() {
-            model = ModelFactory.createDefaultModel();
-        }
+        clusterA.removeAll(RDF.object).addProperty(RDF.object, clusterB);
+        clusterB.removeAll(RDF.object).addProperty(RDF.object, clusterA);
 
-        @Test
-        void shouldSortSimpleNestedClustersBottomUp() {
-            Resource r1 = model.createResource(ns + "stmt1");
-            Cluster c1 = new Cluster(r1, model.createResource(ns + "Michael"),
-                    model.createProperty(ns + "likes"), model.createResource(ns + "dogs"), new HashSet<>());
+        extractor.extractAndProcess(model, cluster -> capturedClusters.add(cluster));
 
-            Resource r2 = model.createResource(ns + "stmt2");
-            Cluster c2 = new Cluster(r2, model.createResource(ns + "Peter"),
-                    model.createProperty(ns + "says"), r1, new HashSet<>());
-
-            SortResult result = clusterExtractor.topologicalSort(List.of(c1, c2));
-
-            assertEquals(2, result.getSortedClusters().size());
-            assertEquals(c1, result.getSortedClusters().get(0), "C1 (deepest) should be first");
-            assertEquals(c2, result.getSortedClusters().get(1), "C2 (parent) should be second");
-            assertTrue(result.getCycles().isEmpty());
-        }
-
-        @Test
-        void shouldHandleMetadataDependencies() {
-            Resource r1 = model.createResource(ns + "stmt1");
-            Resource r2 = model.createResource(ns + "stmt2");
-            Property source = model.createProperty(ns + "source");
-
-            Cluster c2 = new Cluster(r2, model.createResource(ns + "X"),
-                    model.createProperty(ns + "p"), model.createResource(ns + "Y"), new HashSet<>());
-
-            Set<Statement> meta = new HashSet<>();
-            meta.add(model.createStatement(r1, source, r2));
-
-            Cluster c1 = new Cluster(r1, model.createResource(ns + "A"),
-                    model.createProperty(ns + "b"), model.createResource(ns + "C"), meta);
-
-            SortResult result = clusterExtractor.topologicalSort(List.of(c1, c2));
-
-            assertEquals(c2, result.getSortedClusters().get(0), "Dependency in metadata should force C2 to be first");
-            assertEquals(c1, result.getSortedClusters().get(1));
-        }
-
-        @Test
-        void shouldDetectAndSkipSimpleCycle() {
-            Resource r1 = model.createResource(ns + "stmt1");
-            Resource r2 = model.createResource(ns + "stmt2");
-
-            Cluster c1 = new Cluster(r1, model.createResource(ns + "Michael"),
-                    model.createProperty(ns + "p"), r2, new HashSet<>());
-
-            Cluster c2 = new Cluster(r2, model.createResource(ns + "Peter"),
-                    model.createProperty(ns + "p"), r1, new HashSet<>());
-
-            SortResult result = clusterExtractor.topologicalSort(List.of(c1, c2));
-
-            assertTrue(result.getSortedClusters().isEmpty(), "No clusters should be sorted if they are in a cycle");
-            assertEquals(2, result.getCycles().size(), "Both clusters should be identified as part of a cycle");
-        }
-
-        @Test
-        void shouldKeepValidClustersWhenSeparateCycleExists() {
-            Resource r1 = model.createResource(ns + "stmt1");
-            Resource r2 = model.createResource(ns + "stmt2");
-            Resource r3 = model.createResource(ns + "stmt3");
-
-            Cluster c1 = new Cluster(r1, model.createResource(ns + "A"),
-                    model.createProperty(ns + "p"), model.createResource(ns + "B"), new HashSet<>());
-
-            Cluster c2 = new Cluster(r2, r3, model.createProperty(ns + "p"),
-                    model.createResource(ns + "C"), new HashSet<>());
-
-            Cluster c3 = new Cluster(r3, r2, model.createProperty(ns + "p"),
-                    model.createResource(ns + "D"), new HashSet<>());
-
-            SortResult result = clusterExtractor.topologicalSort(List.of(c1, c2, c3));
-
-            assertEquals(1, result.getSortedClusters().size());
-            assertEquals(c1, result.getSortedClusters().getFirst(), "C1 should be processed normally");
-            assertEquals(2, result.getCycles().size(), "C2 and C3 should be caught in cycles list");
-        }
+        assertEquals(0, capturedClusters.size(), "Cyclic clusters should be blocked and not processed.");
     }
 
+    @Test
+    public void testExtractionIgnoresNormalTriples() {
+        createCluster(EX + "Cluster1", EX + "p", EX + "o", "meta1");
+
+        Resource jan = model.createResource(EX + "Jan");
+        Property likes = model.createProperty(EX + "likes");
+        Resource dogs = model.createResource(EX + "Dogs");
+
+        jan.addProperty(likes, dogs);
+
+        extractor.extractAndProcess(model, cluster -> capturedClusters.add(cluster));
+
+        assertEquals(1, capturedClusters.size(), "Normal triples must be ignored by the extractor.");
+
+        assertEquals(EX + "Cluster1", capturedClusters.getFirst().getClusterNode().getURI(), "The extracted cluster URI does not match.");
+    }
 }

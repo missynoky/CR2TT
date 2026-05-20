@@ -1,88 +1,49 @@
 package pl.uwb.cr2tt.core;
 
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.Resource;
-import pl.uwb.cr2tt.model.BaseFact;
-import pl.uwb.cr2tt.model.BaseTriplePolicy;
 import pl.uwb.cr2tt.model.Cluster;
 import pl.uwb.cr2tt.model.ConversionMode;
-import pl.uwb.cr2tt.utils.Logger;
-
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import pl.uwb.cr2tt.model.BaseTriplePolicy;
 
 public class ClusterValidator {
-    private Map<BaseFact, Long> multiplicityMap;
+    public boolean validateCluster(Cluster c, ConversionMode m, BaseTriplePolicy p, boolean allowAssert) {
 
-    public boolean validateCluster(Cluster c, Model inGraph, ConversionMode mode,
-                                   BaseTriplePolicy policy, boolean allowAssertingConversion) {
-        if (multiplicityMap == null) {
-            throw new IllegalStateException("Validator was not initialized. Call initialize() first.");
+        int n_spo = c.getNSpo();
+        boolean in_G_in = c.isInGIn();
+
+        if (n_spo > 1 && (m == ConversionMode.REIFIED_TRIPLE || m == ConversionMode.ANNOTATED_TRIPLE)) {
+            throw new RuntimeException("Multiple reifications for same triple require explicit mode");
         }
 
-        BaseFact fact = new BaseFact(c.getSubject(), c.getPredicate(), c.getObject());
-        long n = multiplicityMap.getOrDefault(fact, 0L);
-
-        if (n > 1 && (mode == ConversionMode.REIFIED_TRIPLE || mode == ConversionMode.ANNOTATED_TRIPLE)) {
-            throw new FatalValidationException("Multiple reifications for same triple require explicit mode.");
+        if (p == BaseTriplePolicy.REQUIRE && !in_G_in) {
+            throw new RuntimeException("Missing base triple");
         }
 
-
-        boolean baseTripleInGraph = inGraph.contains(c.getSubject(), c.getPredicate(), c.getObject());
-
-        if (policy == BaseTriplePolicy.REQUIRE && !baseTripleInGraph) {
-            throw new FatalValidationException("Missing base triple.");
+        if (p == BaseTriplePolicy.FORBID_EXTRA_ASSERTED && in_G_in) {
+            throw new RuntimeException("Triple already asserted");
         }
 
-        if (policy == BaseTriplePolicy.FORBID_EXTRA_ASSERTED && baseTripleInGraph) {
-            throw new FatalValidationException("Triple already asserted.");
+        boolean isAssert = (m == ConversionMode.ANNOTATED_TRIPLE ||
+                m == ConversionMode.ANNOTATED_TRIPLE_EXPLICIT ||
+                m == ConversionMode.ANNOTATED_TRIPLE_EXPANDED);
+
+        if (isAssert && !in_G_in && !allowAssert) {
+            throw new RuntimeException("Assertion not allowed");
         }
 
-
-        boolean isAssert = (mode == ConversionMode.ANNOTATED_TRIPLE ||
-                mode == ConversionMode.ANNOTATED_TRIPLE_EXPLICIT ||
-                mode == ConversionMode.ANNOTATED_TRIPLE_EXPANDED);
-
-        if (isAssert && !baseTripleInGraph && !allowAssertingConversion) {
-            throw new FatalValidationException("Assertion not allowed.");
-        }
-
-
-        boolean isBNode = c.getReifier().isAnon();
-        boolean isLocal = isLocalReifier(c.getReifier(), inGraph);
+        boolean isBNode = c.getClusterNode().isAnon();
+        boolean isLocal = c.isLocal();
         boolean hasMetadata = !c.getMetadata().isEmpty();
 
         boolean okBNode = isBNode && isLocal && hasMetadata;
 
-        if ((mode == ConversionMode.REIFIED_TRIPLE || mode == ConversionMode.ANNOTATED_TRIPLE) && !okBNode) {
-            throw new FatalValidationException("Requires blank node, locality and metadata.");
+        if ((m == ConversionMode.REIFIED_TRIPLE || m == ConversionMode.ANNOTATED_TRIPLE) && !okBNode) {
+            throw new RuntimeException("Requires blank node, locality and metadata");
         }
 
-        if (mode == ConversionMode.ANNOTATED_TRIPLE_EXPLICIT && !hasMetadata) {
-            throw new FatalValidationException("Requires metadata declaration.");
+        if (m == ConversionMode.ANNOTATED_TRIPLE_EXPLICIT && !hasMetadata) {
+            throw new RuntimeException("Requires metadata declaration");
         }
 
         return true;
-    }
-
-    public static class FatalValidationException extends RuntimeException {
-        public FatalValidationException(String message) {
-            super(message);
-        }
-    }
-
-    public void initialize(List<Cluster> allClusters) {
-        Logger.info("initializing validator.");
-        this.multiplicityMap = allClusters.stream()
-                .collect(Collectors.groupingBy(
-                        c -> new BaseFact(c.getSubject(), c.getPredicate(), c.getObject()),
-                        Collectors.counting()
-                ));
-        Logger.info("validator initialized successfully.");
-    }
-
-    private boolean isLocalReifier(Resource reifier, Model inGraph) {
-        return !inGraph.contains(null, null, reifier);
     }
 }

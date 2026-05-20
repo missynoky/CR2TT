@@ -4,45 +4,29 @@ import org.apache.jena.rdf.model.*;
 import pl.uwb.cr2tt.model.Cluster;
 import pl.uwb.cr2tt.model.ConversionMode;
 
-
 public class ClusterConverter {
-    public Model convertCluster(Cluster cluster, ConversionMode mode) {
-        Model outModel = ModelFactory.createDefaultModel();
+    public void convertCluster(Cluster cluster, ConversionMode mode, Model outGraph) {
+        Resource r = cluster.getClusterNode();
+        Resource s = cluster.getSubjectNode();
+        Property p = cluster.getPredicateNode();
+        RDFNode o = cluster.getObjectNode();
 
-        Statement baseStmt;
+        Statement baseTriple = outGraph.createStatement(s, p, o);
 
         switch (mode) {
             case REIFIED_TRIPLE_EXPANDED:
-                baseStmt = outModel.createStatement(
-                        cluster.getSubject(),
-                        cluster.getPredicate(),
-                        cluster.getObject()
-                );
-
-                outModel.createReifier(cluster.getReifier(), baseStmt);
+                outGraph.createReifier(r, baseTriple);
 
                 for (Statement metaStmt : cluster.getMetadata()) {
-                    outModel.add(metaStmt);
+                    outGraph.add(metaStmt);
                 }
                 break;
 
             case REIFIED_TRIPLE:
-                baseStmt = outModel.createStatement(
-                        cluster.getSubject(),
-                        cluster.getPredicate(),
-                        cluster.getObject()
-                );
-
-                Resource anonReifier = outModel.createReifier(baseStmt);
+                Resource anonymousReifier = outGraph.createReifier(baseTriple);
 
                 for (Statement metaStmt : cluster.getMetadata()) {
-                    outModel.add(
-                            outModel.createStatement(
-                                    anonReifier,
-                                    metaStmt.getPredicate(),
-                                    metaStmt.getObject()
-                            )
-                    );
+                    outGraph.add(anonymousReifier, metaStmt.getPredicate(), metaStmt.getObject());
                 }
                 break;
 
@@ -61,6 +45,5 @@ public class ClusterConverter {
             default:
                 throw new IllegalArgumentException("Unsupported conversion mode: " + mode);
         }
-        return outModel;
     }
 }

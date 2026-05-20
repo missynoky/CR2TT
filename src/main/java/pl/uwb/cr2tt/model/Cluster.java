@@ -4,51 +4,37 @@ import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
-
-import java.util.Collections;
 import java.util.Set;
 
 public class Cluster {
-    private final Resource reifier;
-    private final Resource subject;
-    private final Property predicate;
-    private final RDFNode object;
+    private final Resource clusterNode;
+    private final Resource subjectNode;
+    private final Property predicateNode;
+    private final RDFNode objectNode;
     private final Set<Statement> metadata;
+    private final boolean isLocal;
 
-    public Cluster(Resource reifier, Resource subject, Property predicate, RDFNode object, Set<Statement> metadata) {
-        this.reifier = reifier;
-        this.subject = subject;
-        this.predicate = predicate;
-        this.object = object;
-        this.metadata = Collections.unmodifiableSet(metadata);
+    private final int nSpo;
+    private final boolean inGIn;
+
+    public Cluster(Resource clusterNode, Resource subjectNode, Property predicateNode,
+                   RDFNode objectNode, Set<Statement> metadata, int nSpo, boolean inGIn, boolean isLocal) {
+        this.clusterNode = clusterNode;
+        this.subjectNode = subjectNode;
+        this.predicateNode = predicateNode;
+        this.objectNode = objectNode;
+        this.metadata = metadata;
+        this.nSpo = nSpo;
+        this.inGIn = inGIn;
+        this.isLocal = isLocal;
     }
 
-    public Resource getReifier() {
-        return reifier;
-    }
-
-    public Resource getSubject() {
-        return subject;
-    }
-
-    public Property getPredicate() {
-        return predicate;
-    }
-
-    public RDFNode getObject() {
-        return object;
-    }
-
-    public Set<Statement> getMetadata() {
-        return metadata;
-    }
-
-    @Override
-    public String toString() {
-        return "Cluster{" +
-                "reifier=" + reifier.getLocalName() +
-                ", triple=(" + subject.getLocalName() + " " + predicate.getLocalName() + " " + object.toString() + ")" +
-                ", metaCount=" + metadata.size() +
-                '}';
-    }
+    public Resource getClusterNode() { return clusterNode; }
+    public Resource getSubjectNode() { return subjectNode; }
+    public Property getPredicateNode() { return predicateNode; }
+    public RDFNode getObjectNode() { return objectNode; }
+    public Set<Statement> getMetadata() { return metadata; }
+    public int getNSpo() { return nSpo; }
+    public boolean isInGIn() { return inGIn; }
+    public boolean isLocal() { return isLocal; }
 }
