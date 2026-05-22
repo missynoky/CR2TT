@@ -54,4 +54,21 @@ public class ClusterConverterTest {
 
         assertTrue(outGraph.isIsomorphicWith(expectedModel), "Graphs are not isomorphic.");
     }
+
+    @Test
+    public void testReiifedTripleExplicitConverion() {
+        Model inputModel = ModelFactory.createDefaultModel();
+        RDFDataMgr.read(inputModel, "src/test/resources/examples/classic/multi-metadata.ttl", Lang.TURTLE);
+
+        Model expectedModel = ModelFactory.createDefaultModel();
+        RDFDataMgr.read(expectedModel, "src/test/resources/examples/expected/reified-triple-explicit-expected.ttl", Lang.TURTLE);
+
+        Model outGraph = ModelFactory.createDefaultModel();
+
+        extractor.extractAndProcess(inputModel, cluster -> {
+            converter.convertCluster(cluster,ConversionMode.REIFIED_TRIPLE_EXPLICIT, outGraph);
+        });
+
+        assertTrue(outGraph.isIsomorphicWith(expectedModel), "Graphs are not isomorphic.");
+    }
 }
