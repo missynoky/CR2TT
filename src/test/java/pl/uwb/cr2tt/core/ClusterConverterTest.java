@@ -71,4 +71,25 @@ public class ClusterConverterTest {
 
         assertTrue(outGraph.isIsomorphicWith(expectedModel), "Graphs are not isomorphic.");
     }
+
+    @Test
+    public void testAnnotatedTripleConversion() {
+        Model inputModel = ModelFactory.createDefaultModel();
+        RDFDataMgr.read(inputModel, "src/test/resources/examples/classic/blank-reifier.ttl", Lang.TURTLE);
+
+        Model expectedModel = ModelFactory.createDefaultModel();
+        RDFDataMgr.read(expectedModel, "src/test/resources/examples/expected/annotated-triple-expected.ttl", Lang.TURTLE);
+
+        Model outGraph = ModelFactory.createDefaultModel();
+
+        extractor.extractAndProcess(inputModel, cluster -> {
+            converter.convertCluster(cluster,ConversionMode.ANNOTATED_TRIPLE, outGraph);
+        });
+
+        outGraph.setNsPrefixes(inputModel.getNsPrefixMap());
+
+        RDFDataMgr.write(System.out, outGraph, Lang.TURTLE);
+
+        assertTrue(outGraph.isIsomorphicWith(expectedModel), "Graphs are not isomorphic.");
+    }
 }

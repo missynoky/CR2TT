@@ -41,6 +41,13 @@ public class ClusterConverter {
                 break;
 
             case ANNOTATED_TRIPLE:
+                outGraph.add(baseTriple);
+
+                Resource anonReifier = outGraph.createReifier(baseTriple);
+
+                for (Statement metaStmt : cluster.getMetadata()) {
+                    outGraph.add(anonReifier, metaStmt.getPredicate(), metaStmt.getObject());
+                }
                 break;
 
             case ANNOTATED_TRIPLE_EXPLICIT:
