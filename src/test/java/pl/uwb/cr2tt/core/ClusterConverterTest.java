@@ -86,9 +86,43 @@ public class ClusterConverterTest {
             converter.convertCluster(cluster,ConversionMode.ANNOTATED_TRIPLE, outGraph);
         });
 
-        outGraph.setNsPrefixes(inputModel.getNsPrefixMap());
+//        outGraph.setNsPrefixes(inputModel.getNsPrefixMap());
+//
+//        RDFDataMgr.write(System.out, outGraph, Lang.TURTLE);
 
-        RDFDataMgr.write(System.out, outGraph, Lang.TURTLE);
+        assertTrue(outGraph.isIsomorphicWith(expectedModel), "Graphs are not isomorphic.");
+    }
+
+    @Test
+    public void testAnnotatedTripleExplicitConversion() {
+        Model inputModel = ModelFactory.createDefaultModel();
+        RDFDataMgr.read(inputModel, "src/test/resources/examples/classic/multi-metadata.ttl", Lang.TURTLE);
+
+        Model expectedModel = ModelFactory.createDefaultModel();
+        RDFDataMgr.read(expectedModel, "src/test/resources/examples/expected/annotated-triple-explicit-expected.ttl", Lang.TURTLE);
+
+        Model outGraph = ModelFactory.createDefaultModel();
+
+        extractor.extractAndProcess(inputModel, cluster -> {
+            converter.convertCluster(cluster,ConversionMode.ANNOTATED_TRIPLE_EXPLICIT, outGraph);
+        });
+
+        assertTrue(outGraph.isIsomorphicWith(expectedModel), "Graphs are not isomorphic.");
+    }
+
+    @Test
+    public void testAnnotatedTripleExpandedConversion() {
+        Model inputModel = ModelFactory.createDefaultModel();
+        RDFDataMgr.read(inputModel, "src/test/resources/examples/classic/multi-metadata.ttl", Lang.TURTLE);
+
+        Model expectedModel = ModelFactory.createDefaultModel();
+        RDFDataMgr.read(expectedModel, "src/test/resources/examples/expected/annotated-triple-expanded-expected.ttl", Lang.TURTLE);
+
+        Model outGraph = ModelFactory.createDefaultModel();
+
+        extractor.extractAndProcess(inputModel, cluster -> {
+            converter.convertCluster(cluster,ConversionMode.ANNOTATED_TRIPLE_EXPANDED, outGraph);
+        });
 
         assertTrue(outGraph.isIsomorphicWith(expectedModel), "Graphs are not isomorphic.");
     }

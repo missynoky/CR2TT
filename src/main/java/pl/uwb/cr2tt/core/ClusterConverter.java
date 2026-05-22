@@ -51,9 +51,25 @@ public class ClusterConverter {
                 break;
 
             case ANNOTATED_TRIPLE_EXPLICIT:
+                outGraph.add(baseTriple);
+
+                outGraph.createReifier(r, baseTriple);
+
+                for (Statement metaStmt : cluster.getMetadata()) {
+                    outGraph.add(metaStmt);
+                }
                 break;
 
             case ANNOTATED_TRIPLE_EXPANDED:
+                outGraph.add(baseTriple);
+
+                outGraph.createReifier(r, baseTriple);
+
+                if (!cluster.getMetadata().isEmpty()) {
+                    for (Statement metaStmt : cluster.getMetadata()) {
+                        outGraph.add(metaStmt);
+                    }
+                }
                 break;
 
             default:

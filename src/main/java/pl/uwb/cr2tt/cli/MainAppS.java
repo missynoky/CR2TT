@@ -3,7 +3,10 @@ package pl.uwb.cr2tt.cli;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.tdb2.TDB2Factory;
+import org.apache.jena.vocabulary.RDF;
 import pl.uwb.cr2tt.core.ClusterConverter;
 import pl.uwb.cr2tt.core.ClusterExtractor;
 import pl.uwb.cr2tt.core.ClusterValidator;
@@ -35,15 +38,19 @@ public class MainAppS {
             Model inGraph = inDataset.getDefaultModel();
             Model outGraph = outDataset.getDefaultModel();
 
+            outGraph.setNsPrefixes(inGraph.getNsPrefixMap());
+
             ClusterExtractor extractor = new ClusterExtractor();
             ClusterValidator validator = new ClusterValidator();
             ClusterConverter converter = new ClusterConverter();
 
-            ConversionMode currentMode = ConversionMode.REIFIED_TRIPLE;
+            ConversionMode currentMode = ConversionMode.REIFIED_TRIPLE_EXPANDED;
             BaseTriplePolicy currentPolicy = BaseTriplePolicy.PRESERVE;
             boolean allowAssert = false;
 
             AtomicInteger validCounter = new AtomicInteger(0);
+
+            Model tombstoneGraph = outDataset.getNamedModel("urn:cr2tt:temp:tombstones");
 
             Logger.info("starting extraction, validation and conversion process.");
 
@@ -53,9 +60,34 @@ public class MainAppS {
                 if (isValid) {
                     validCounter.incrementAndGet();
                     converter.convertCluster(cluster, currentMode, outGraph);
+
+                    tombstoneGraph.add(cluster.getClusterNode(), RDF.type, RDF.Statement);
                 }
             });
             Logger.info("validation completed successfully for " + validCounter.get() + " clusters.");
+
+            Logger.info("starting to copy regular triples and invalid clusters.");
+            long copiedTriples = 0;
+            StmtIterator it = inGraph.listStatements();
+
+            while (it.hasNext()) {
+                Statement stmt = it.next();
+
+                if (tombstoneGraph.contains(stmt.getSubject(), RDF.type, RDF.Statement)) {
+                    continue;
+                }
+
+                outGraph.add(stmt);
+                copiedTriples++;
+
+                if (copiedTriples % 1000000 == 0) {
+                    Logger.info("copied " + copiedTriples + " regular triples to the output database.");
+                }
+            }
+            Logger.info("finished copying. Total copied triples: " + copiedTriples);
+
+            tombstoneGraph.removeAll();
+
             Logger.info("committing converted data to the output database.");
             outDataset.commit();
             Logger.info("transaction committed. Output database updated successfully.");
