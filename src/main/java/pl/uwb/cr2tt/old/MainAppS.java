@@ -1,4 +1,4 @@
-package pl.uwb.cr2tt.cli;
+package pl.uwb.cr2tt.old;
 
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.ReadWrite;
@@ -13,13 +13,15 @@ import pl.uwb.cr2tt.core.ClusterValidator;
 import pl.uwb.cr2tt.model.ConversionMode;
 import pl.uwb.cr2tt.model.BaseTriplePolicy;
 import pl.uwb.cr2tt.utils.Logger;
+import pl.uwb.cr2tt.utils.TimeUtils;
 
+import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class MainAppS {
 
     public static void main(String[] args) {
-        long startTime = System.currentTimeMillis();
+        Instant startTime = Instant.now();
         Logger.init(true);
 
         String inDbPath = "C:\\Users\\magda\\Desktop\\studia\\Praca magisterska\\program\\data\\baza_tdb2";
@@ -69,20 +71,23 @@ public class MainAppS {
             Logger.info("starting to copy regular triples and invalid clusters.");
             long copiedTriples = 0;
             StmtIterator it = inGraph.listStatements();
+            try {
+                while (it.hasNext()) {
+                    Statement stmt = it.next();
 
-            while (it.hasNext()) {
-                Statement stmt = it.next();
+                    if (tombstoneGraph.contains(stmt.getSubject(), RDF.type, RDF.Statement)) {
+                        continue;
+                    }
 
-                if (tombstoneGraph.contains(stmt.getSubject(), RDF.type, RDF.Statement)) {
-                    continue;
+                    outGraph.add(stmt);
+                    copiedTriples++;
+
+                    if (copiedTriples % 1000000 == 0) {
+                        Logger.info("copied " + copiedTriples + " regular triples to the output database.");
+                    }
                 }
-
-                outGraph.add(stmt);
-                copiedTriples++;
-
-                if (copiedTriples % 1000000 == 0) {
-                    Logger.info("copied " + copiedTriples + " regular triples to the output database.");
-                }
+            } finally {
+                it.close();
             }
             Logger.info("finished copying. Total copied triples: " + copiedTriples);
 
@@ -94,12 +99,20 @@ public class MainAppS {
 
         } catch (RuntimeException ex) {
             Logger.error("validation aborted due to an error: " + ex.getMessage());
-            outDataset.abort();
+
+            if (outDataset.isInTransaction()) {
+                outDataset.abort();
+            }
             Logger.info("all output changes have been rolled back. Output database is clean.");
 
-        } catch (Exception e) {
-            Logger.error("unexpected error during processing: " + e.getMessage());
-            e.printStackTrace();
+        } catch (Exception ex) {
+            Logger.error("Error during processing: " + ex.getMessage());
+            ex.printStackTrace();
+
+            if (outDataset.isInTransaction()) {
+                outDataset.abort();
+            }
+            Logger.info("all output changes have been rolled back. Output database is clean.");
         } finally {
             inDataset.end();
             inDataset.close();
@@ -107,13 +120,9 @@ public class MainAppS {
             outDataset.close();
             Logger.info("connections to all TDB2 databases closed safely.");
 
-            long endTime = System.currentTimeMillis();
-            long totalTimeMs = endTime - startTime;
-            long totalTimeSec = totalTimeMs / 1000;
-            long totalTimeMin = totalTimeSec / 60;
-            long remainingSec = totalTimeSec % 60;
+            Instant endTime = Instant.now();
 
-            Logger.info("total execution time: " + totalTimeMin + " min " + remainingSec + " sec");
+            Logger.info("total execution time: " + TimeUtils.getExecutionTimeFormatted(startTime, endTime));
         }
     }
 }

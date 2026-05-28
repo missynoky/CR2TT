@@ -1,4 +1,4 @@
-package pl.uwb.cr2tt.io;
+package pl.uwb.cr2tt.old;
 
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
