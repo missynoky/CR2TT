@@ -68,12 +68,11 @@
     </dependencies>
 
     <build>
-        <finalName>rdf12-reif</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.2</version>
+                <version>3.5.1</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -81,11 +80,14 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <finalName>rdf12-reif</finalName>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>pl.uwb.cr2tt.cli.Main</mainClass>
                                 </transformer>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                             </transformers>
                             <filters>
                                 <filter>
