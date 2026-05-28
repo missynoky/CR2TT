@@ -3,8 +3,9 @@ package pl.uwb.cr2tt.cli;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
-import org.apache.jena.rdf.model.Model;
+import pl.uwb.cr2tt.core.ConversionEngine;
 import pl.uwb.cr2tt.model.BaseTriplePolicy;
+import pl.uwb.cr2tt.model.ConversionContext;
 import pl.uwb.cr2tt.model.ConversionMode;
 import pl.uwb.cr2tt.utils.Logger;
 
@@ -71,20 +72,33 @@ public class Main implements Callable<Integer> {
     @Override
     public Integer call() {
         Logger.init(verbose);
-        Validator validator = new Validator(inputFile, outputFile, validateOnly, allowAssertingConversion, mode);
-        Model inGraph;
-
         Logger.info("starting rdf12-reif conversion process.");
 
-        boolean initialValidatorResult = validator.initialValidator();
+        ConversionContext context = new ConversionContext(
+                inputFile,
+                outputFile,
+                mode,
+                baseTriplePolicy,
+                allowAssertingConversion,
+                validateOnly
+        );
+
+        CliValidator cliValidator = new CliValidator(context);
+        boolean initialValidatorResult = cliValidator.initialValidator();
         if (!initialValidatorResult) {
             Logger.error("initial validation failed. Aborting.");
             return -1;
         }
 
-        // TODO: add logger in validator
+        try {
+            ConversionEngine engine = new ConversionEngine(context);
+            engine.run();
+            return 0;
+        } catch (Exception e) {
+            Logger.error("conversion process failed: " + e.getMessage());
+            return -1;
+        }
 
-        return 0;
     }
 
     public static void main(String[] args) {

@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ClusterExtractorTest {
     private static final String EX = "http://example.org/";
 
+
     private Model model;
     private ClusterExtractor extractor;
     private List<Cluster> capturedClusters;

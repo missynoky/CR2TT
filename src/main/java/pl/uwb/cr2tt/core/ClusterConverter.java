@@ -72,6 +72,9 @@ public class ClusterConverter {
                 }
                 break;
 
+            case DIRECT_TRIPLE:
+                break;
+
             default:
                 throw new IllegalArgumentException("Unsupported conversion mode: " + mode);
         }

@@ -17,22 +17,43 @@ public class ClusterExtractor {
         Logger.info("starting extraction of clusters.");
 
         String sparqlString =
-                "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> " +
-                        "SELECT ?cluster ?s ?p ?o ?metaPred ?metaObj " +
-                        "WHERE { " +
-                        "  { " +
-                        "    SELECT ?cluster ?s ?p ?o " +
-                        "    WHERE { " +
-                        "      ?cluster rdf:subject ?s ; " +
-                        "               rdf:predicate ?p ; " +
-                        "               rdf:object ?o . " +
-                        "      OPTIONAL { ?cluster rdf:type ?type } " +
-                        "    } GROUP BY ?cluster ?s ?p ?o " +
-                        "    HAVING (COUNT(?type) <= 1 && (isIRI(?s) || isBlank(?s)) && isIRI(?p)) " +
-                        "  } " +
-                        "  ?cluster ?metaPred ?metaObj . " +
-                        "  FILTER (?metaPred != rdf:subject && ?metaPred != rdf:predicate && ?metaPred != rdf:object) " +
-                        "  FILTER (!(?metaPred = rdf:type && ?metaObj = rdf:Statement)) " +
+                "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> \n" +
+                        "SELECT ?cluster ?s ?p ?o ?metaPred ?metaObj \n" +
+                        "WHERE { \n" +
+                        "  { \n" +
+                        "    SELECT ?cluster ?s ?p ?o \n" +
+                        "    WHERE { \n" +
+                        "      ?cluster rdf:subject ?s ; \n" +
+                        "               rdf:predicate ?p ; \n" +
+                        "               rdf:object ?o . \n" +
+                        "      \n" +
+                        "      FILTER NOT EXISTS { \n" +
+                        "        ?cluster rdf:subject ?s2 . \n" +
+                        "        FILTER (?s != ?s2) \n" +
+                        "      } \n" +
+                        "      \n" +
+                        "      FILTER NOT EXISTS { \n" +
+                        "        ?cluster rdf:predicate ?p2 . \n" +
+                        "        FILTER (?p != ?p2) \n" +
+                        "      } \n" +
+                        "      \n" +
+                        "      FILTER NOT EXISTS { \n" +
+                        "        ?cluster rdf:object ?o2 . \n" +
+                        "        FILTER (?o != ?o2) \n" +
+                        "      } \n" +
+                        "      \n" +
+                        "      OPTIONAL { \n" +
+                        "        ?cluster rdf:type ?type . \n" +
+                        "        FILTER(?type = rdf:Statement) \n" +
+                        "      } \n" +
+                        "    } GROUP BY ?cluster ?s ?p ?o \n" +
+                        "    HAVING (COUNT(?type) <= 1 && (isIRI(?s) || isBlank(?s)) && isIRI(?p) && (isIRI(?o) || isBlank(?o) || isLiteral(?o))) \n" +
+                        "  } \n" +
+                        "  OPTIONAL { \n" +
+                        "    ?cluster ?metaPred ?metaObj . \n" +
+                        "    FILTER (?metaPred != rdf:subject && ?metaPred != rdf:predicate && ?metaPred != rdf:object) \n" +
+                        "    FILTER (!(?metaPred = rdf:type && ?metaObj = rdf:Statement)) \n" +
+                        "  } \n" +
                         "} ORDER BY ?cluster";
 
         Logger.info("compiling SPARQL query.");
@@ -48,6 +69,7 @@ public class ClusterExtractor {
             RDFNode currentO = null;
             Set<Statement> metadata = new HashSet<>();
             long rowCount = 0;
+            long clusterCount = 0;
 
             while (results.hasNext()) {
                 rowCount++;
@@ -63,13 +85,8 @@ public class ClusterExtractor {
                 Resource cNode = soln.getResource("cluster");
 
                 if (lastClusterNode != null && !cNode.equals(lastClusterNode)) {
-                    int nSpo = calculateNSpo(inGraph, currentS, currentP, currentO);
-                    boolean isLocal = !inGraph.contains(null, null, lastClusterNode);
-                    boolean inGIn = inGraph.contains(currentS, currentP, currentO);
-
-                    Cluster cluster = new Cluster(lastClusterNode, currentS, currentP, currentO, metadata,
-                            nSpo, inGIn, isLocal);
-                    evaluateDependencyAndProcess(cluster, inGraph, clusterProcessor);
+                    clusterCount++;
+                    buildAndProcessCluster(inGraph, lastClusterNode, currentS, currentP, currentO, metadata, clusterProcessor);
                     metadata = new HashSet<>();
                 }
 
@@ -78,28 +95,35 @@ public class ClusterExtractor {
                 currentP = ResourceFactory.createProperty(soln.getResource("p").getURI());
                 currentO = soln.get("o");
 
-                Property mPred = ResourceFactory.createProperty(soln.getResource("metaPred").getURI());
-                RDFNode mObj = soln.get("metaObj");
-                metadata.add(ResourceFactory.createStatement(cNode, mPred, mObj));
+                if (soln.contains("metaPred") && soln.contains("metaObj")) {
+                    Property mPred = ResourceFactory.createProperty(soln.getResource("metaPred").getURI());
+                    RDFNode mObj = soln.get("metaObj");
+                    metadata.add(ResourceFactory.createStatement(cNode, mPred, mObj));
+                }
             }
 
             if (lastClusterNode != null) {
-                int nSpo = calculateNSpo(inGraph, currentS, currentP, currentO);
-                boolean isLocal = !inGraph.contains(null, null, lastClusterNode);
-                boolean inGIn = inGraph.contains(currentS, currentP, currentO);
-
-                Cluster cluster = new Cluster(lastClusterNode, currentS, currentP, currentO, metadata,
-                        nSpo, inGIn, isLocal);
-                evaluateDependencyAndProcess(cluster, inGraph, clusterProcessor);
+                clusterCount++;
+                buildAndProcessCluster(inGraph, lastClusterNode, currentS, currentP, currentO, metadata, clusterProcessor);
             }
 
-            Logger.info("finished reading stream. Total rows: " + rowCount);
+            Logger.info("finished reading stream. Processed rows: " + rowCount + ", extracted clusters: " + clusterCount);
 
             if (!waitingRoom.isEmpty()) {
                 int cyclicCount = waitingRoom.values().stream().mapToInt(List::size).sum();
                 Logger.error("cyclic reification omitted due to loop detection. Skipped clusters: " + cyclicCount);
             }
         }
+    }
+
+    private void buildAndProcessCluster(Model inGraph, Resource cNode, Resource s, Property p, RDFNode o,
+                                        Set<Statement> metadata, Consumer<Cluster> clusterProcessor) {
+        int nSpo = calculateNSpo(inGraph, s, p, o);
+        boolean isLocal = !inGraph.contains(null, null, cNode);
+        boolean inGIn = inGraph.contains(s, p, o);
+
+        Cluster cluster = new Cluster(cNode, s, p, o, metadata, nSpo, inGIn, isLocal);
+        evaluateDependencyAndProcess(cluster, inGraph, clusterProcessor);
     }
 
     private void evaluateDependencyAndProcess(Cluster cluster, Model inGraph, Consumer<Cluster> clusterProcessor) {

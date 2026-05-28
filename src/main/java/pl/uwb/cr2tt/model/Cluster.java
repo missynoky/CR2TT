@@ -6,6 +6,7 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import java.util.Set;
 
+
 public class Cluster {
     private final Resource clusterNode;
     private final Resource subjectNode;

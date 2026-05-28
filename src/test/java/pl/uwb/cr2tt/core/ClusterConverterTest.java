@@ -86,10 +86,6 @@ public class ClusterConverterTest {
             converter.convertCluster(cluster,ConversionMode.ANNOTATED_TRIPLE, outGraph);
         });
 
-//        outGraph.setNsPrefixes(inputModel.getNsPrefixMap());
-//
-//        RDFDataMgr.write(System.out, outGraph, Lang.TURTLE);
-
         assertTrue(outGraph.isIsomorphicWith(expectedModel), "Graphs are not isomorphic.");
     }
 

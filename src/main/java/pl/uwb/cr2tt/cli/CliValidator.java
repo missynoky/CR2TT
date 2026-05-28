@@ -1,26 +1,25 @@
 package pl.uwb.cr2tt.cli;
 
+import pl.uwb.cr2tt.model.ConversionContext;
 import pl.uwb.cr2tt.model.ConversionMode;
 import pl.uwb.cr2tt.utils.Logger;
 
 import java.io.File;
 
-public class Validator {
-    private final File inputFile;
-    private final File outputFile;
-    private final boolean validateOnly;
-    private final boolean allowAssertingConversion;
-    private final ConversionMode mode;
+public class CliValidator {
+    private final ConversionContext context;
 
-    public Validator(File inputFile, File outputFile, boolean validateOnly, boolean allowAssertingConversion, ConversionMode mode) {
-        this.inputFile = inputFile;
-        this.outputFile = outputFile;
-        this.validateOnly = validateOnly;
-        this.allowAssertingConversion = allowAssertingConversion;
-        this.mode = mode;
+    public CliValidator(ConversionContext context) {
+        this.context = context;
     }
 
     public boolean initialValidator() {
+        File inputFile = context.getInputFile();
+        File outputFile = context.getOutputFile();
+        boolean validateOnly = context.isValidateOnly();
+        boolean allowAssertingConversion = context.isAllowAssertingConversion();
+        ConversionMode mode = context.getMode();
+
         if (!inputFile.exists()) {
             Logger.error("input file does not exist: " + inputFile.getAbsolutePath());
             return false;
@@ -30,8 +29,6 @@ public class Validator {
             Logger.error("provided input path is not a file: " + inputFile.getAbsolutePath());
             return false;
         }
-
-        Logger.info("Input file path is valid: " + inputFile.getAbsolutePath());
 
         if (validateOnly) {
             Logger.info("validate-only mode active. Output destination: none.");

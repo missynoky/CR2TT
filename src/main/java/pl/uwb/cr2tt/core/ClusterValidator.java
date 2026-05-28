@@ -4,6 +4,7 @@ import pl.uwb.cr2tt.model.Cluster;
 import pl.uwb.cr2tt.model.ConversionMode;
 import pl.uwb.cr2tt.model.BaseTriplePolicy;
 
+
 public class ClusterValidator {
     public boolean validateCluster(Cluster c, ConversionMode m, BaseTriplePolicy p, boolean allowAssert) {
 
