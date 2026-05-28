@@ -82,6 +82,7 @@ public class ClusterConverter {
                         o.asNode()
                 );
 
+
                 Resource tripleTermSubj = outGraph.asRDFNode(tripleNode).asResource();
 
                 outGraph.add(tripleTermSubj, RDF.type, RDF.Statement);
