@@ -1,6 +1,9 @@
 package pl.uwb.cr2tt.core;
 
+import org.apache.jena.graph.Node;
+import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.rdf.model.*;
+import org.apache.jena.vocabulary.RDF;
 import pl.uwb.cr2tt.model.Cluster;
 import pl.uwb.cr2tt.model.ConversionMode;
 
@@ -73,6 +76,19 @@ public class ClusterConverter {
                 break;
 
             case DIRECT_TRIPLE:
+                Node tripleNode = NodeFactory.createTripleTerm(
+                        s.asNode(),
+                        p.asNode(),
+                        o.asNode()
+                );
+
+                Resource tripleTermSubj = outGraph.asRDFNode(tripleNode).asResource();
+
+                outGraph.add(tripleTermSubj, RDF.type, RDF.Statement);
+
+                for (Statement metaStmt : cluster.getMetadata()) {
+                    outGraph.add(tripleTermSubj, metaStmt.getPredicate(), metaStmt.getObject());
+                }
                 break;
 
             default:
