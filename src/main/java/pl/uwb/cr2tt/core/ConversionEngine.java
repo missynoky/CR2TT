@@ -1,11 +1,14 @@
 package pl.uwb.cr2tt.core;
 
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.vocabulary.RDF;
 import pl.uwb.cr2tt.db.DatasetManager;
 import pl.uwb.cr2tt.io.DatasetExporter;
 import pl.uwb.cr2tt.io.DatasetImporter;
 import pl.uwb.cr2tt.model.BaseTriplePolicy;
+import pl.uwb.cr2tt.model.Cluster;
 import pl.uwb.cr2tt.model.ConversionContext;
 import pl.uwb.cr2tt.model.ConversionMode;
 import pl.uwb.cr2tt.utils.Logger;
@@ -71,7 +74,7 @@ public class ConversionEngine {
 
                     if (!validateOnly) {
                         converter.convertCluster(cluster, mode, outGraph);
-                        tombstoneGraph.add(cluster.getClusterNode(), RDF.type, RDF.Statement);
+                        markClusterAsProcessed(cluster, tombstoneGraph);
                     }
                 }
             });
@@ -110,6 +113,18 @@ public class ConversionEngine {
 
             Instant endTime = Instant.now();
             Logger.info("total execution time: " + TimeUtils.getExecutionTimeFormatted(startTime, endTime));
+        }
+    }
+
+    private void markClusterAsProcessed(Cluster cluster, Model tombstoneGraph) {
+        Resource cNode = cluster.getSubjectNode();
+        tombstoneGraph.add(cNode, RDF.subject, cluster.getSubjectNode());
+        tombstoneGraph.add(cNode, RDF.predicate, cluster.getPredicateNode());
+        tombstoneGraph.add(cNode, RDF.object, cluster.getObjectNode());
+        tombstoneGraph.add(cNode, RDF.type, RDF.Statement);
+
+        for (Statement metaStmt : cluster.getMetadata()) {
+            tombstoneGraph.add(metaStmt);
         }
     }
 

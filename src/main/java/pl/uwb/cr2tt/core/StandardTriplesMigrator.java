@@ -3,7 +3,6 @@ package pl.uwb.cr2tt.core;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
-import org.apache.jena.vocabulary.RDF;
 import pl.uwb.cr2tt.utils.Logger;
 
 public class StandardTriplesMigrator {
@@ -17,7 +16,7 @@ public class StandardTriplesMigrator {
             while (it.hasNext()) {
                 Statement stmt = it.next();
 
-                if (tombstoneGraph.contains(stmt.getSubject(), RDF.type, RDF.Statement)) {
+                if (tombstoneGraph.contains(stmt)) {
                     continue;
                 }
 
