@@ -11,16 +11,28 @@ import java.io.FileOutputStream;
 public class DatasetExporter {
 
     public void exportData(Model outGraph, File outputFile) {
-        Logger.info("exporting data to RDF file: " + outputFile.getAbsolutePath());
+        if (outputFile != null) {
+            Logger.info("exporting data to RDF file: " + outputFile.getAbsolutePath());
 
-        try (FileOutputStream out = new FileOutputStream(outputFile)) {
+            try (FileOutputStream out = new FileOutputStream(outputFile)) {
+                RDFDataMgr.write(out, outGraph, RDFFormat.TURTLE_BLOCKS);
 
-            RDFDataMgr.write(out, outGraph, RDFFormat.TURTLE_BLOCKS);
+                Logger.info("export finished successfully.");
 
-            Logger.info("export finished successfully.");
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to export dataset to file: " + outputFile.getName(), e);
+            }
+        } else {
+            Logger.info("exporting data to standard output.");
 
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to export dataset to file: " + outputFile.getName(), e);
+            try {
+                RDFDataMgr.write(System.out, outGraph, RDFFormat.TURTLE_BLOCKS);
+                System.out.flush();
+
+                Logger.info("export finished successfully.");
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to export dataset to standard output", e);
+            }
         }
     }
 }
