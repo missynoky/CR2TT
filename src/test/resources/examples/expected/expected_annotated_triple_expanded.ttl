@@ -1,0 +1,15 @@
+PREFIX ex: <http://example.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+ex:Jan ex:knows ex:Anna .
+<< ex:Jan ex:knows ex:Anna ~ ex:stmt1 >> ex:accordingTo ex:Source1 ;
+    ex:confidence 0.9 .
+
+ex:Piotr ex:likes ex:Coffee .
+<< ex:Piotr ex:likes ex:Coffee ~ ex:stmt2 >> ex:accordingTo ex:Source2 ;
+    ex:confidence 0.8 .
+
+ex:Ewa ex:livesIn ex:Warsaw .
+<< ex:Ewa ex:livesIn ex:Warsaw ~ ex:stmt3 >> ex:accordingTo ex:Source3 ;
+    ex:confidence 0.99 .

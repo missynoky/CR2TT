@@ -1,0 +1,20 @@
+@prefix ex: <http://example.org/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+_:stmt1 a rdf:Statement ;
+    rdf:subject ex:Jan ;
+    rdf:predicate ex:knows ;
+    rdf:object ex:Anna ;
+    ex:accordingTo ex:Source1 .
+
+_:stmt2 a rdf:Statement ;
+    rdf:subject ex:Piotr ;
+    rdf:predicate ex:likes ;
+    rdf:object ex:Coffee ;
+    ex:accordingTo ex:Source2 .
+
+_:stmt3 a rdf:Statement ;
+    rdf:subject ex:Ewa ;
+    rdf:predicate ex:livesIn ;
+    rdf:object ex:Warsaw ;
+    ex:accordingTo ex:Source3 .
