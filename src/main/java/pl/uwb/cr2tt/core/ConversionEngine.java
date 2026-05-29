@@ -17,6 +17,8 @@ import pl.uwb.cr2tt.utils.TimeUtils;
 import java.io.File;
 import java.nio.file.Files;
 import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ConversionEngine {
@@ -63,22 +65,38 @@ public class ConversionEngine {
 
             Model tombstoneGraph = outDb.getNamedModel("urn:cr2tt:temp:tombstones");
             AtomicInteger validCounter = new AtomicInteger(0);
+            AtomicInteger invalidCounter = new AtomicInteger(0);
+            Map<String, Integer> errorSummary = new ConcurrentHashMap<>();
 
             Logger.info("starting extraction, validation and conversion process.");
 
             extractor.extractAndProcess(inGraph, cluster -> {
-                boolean isValid = validator.validateCluster(cluster, mode, baseTriplePolicy, allowAssertingConversion);
+                String errorReason = validator.validateCluster(cluster, mode, baseTriplePolicy, allowAssertingConversion);
 
-                if (isValid) {
+                if (errorReason == null) {
                     validCounter.incrementAndGet();
 
                     if (!validateOnly) {
                         converter.convertCluster(cluster, mode, outGraph);
                         markClusterAsProcessed(cluster, tombstoneGraph);
                     }
+                } else {
+                    invalidCounter.incrementAndGet();
+                    errorSummary.merge(errorReason, 1, Integer::sum);
                 }
             });
-            Logger.info("validation completed successfully for " + validCounter.get() + " clusters.");
+
+            Logger.info("extraction, validation and conversion process finished.");
+
+            Logger.info("valid clusters: " + validCounter.get());
+            Logger.info("invalid clusters: " + invalidCounter.get());
+
+            if (invalidCounter.get() > 0) {
+                Logger.info("Reasons for rejection:");
+                errorSummary.forEach((reason, count) -> {
+                    Logger.info(reason + ": " + count);
+                });
+            }
 
             if (!validateOnly) {
                 migrator.migrate(inGraph, outGraph, tombstoneGraph);
@@ -117,7 +135,7 @@ public class ConversionEngine {
     }
 
     private void markClusterAsProcessed(Cluster cluster, Model tombstoneGraph) {
-        Resource cNode = cluster.getSubjectNode();
+        Resource cNode = cluster.getClusterNode();
         tombstoneGraph.add(cNode, RDF.subject, cluster.getSubjectNode());
         tombstoneGraph.add(cNode, RDF.predicate, cluster.getPredicateNode());
         tombstoneGraph.add(cNode, RDF.object, cluster.getObjectNode());

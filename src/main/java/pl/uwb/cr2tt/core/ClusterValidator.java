@@ -6,21 +6,21 @@ import pl.uwb.cr2tt.model.BaseTriplePolicy;
 
 
 public class ClusterValidator {
-    public boolean validateCluster(Cluster c, ConversionMode m, BaseTriplePolicy p, boolean allowAssert) {
+    public String validateCluster(Cluster c, ConversionMode m, BaseTriplePolicy p, boolean allowAssert) {
 
         int n_spo = c.getNSpo();
         boolean in_G_in = c.isInGIn();
 
         if (n_spo > 1 && (m == ConversionMode.REIFIED_TRIPLE || m == ConversionMode.ANNOTATED_TRIPLE)) {
-            throw new RuntimeException("Multiple reifications for same triple require explicit mode");
+            return "Multiple reifications for same triple require explicit mode";
         }
 
         if (p == BaseTriplePolicy.REQUIRE && !in_G_in) {
-            throw new RuntimeException("Missing base triple");
+            return "Missing base triple";
         }
 
         if (p == BaseTriplePolicy.FORBID_EXTRA_ASSERTED && in_G_in) {
-            throw new RuntimeException("Triple already asserted");
+            return "Triple already asserted";
         }
 
         boolean isAssert = (m == ConversionMode.ANNOTATED_TRIPLE ||
@@ -28,7 +28,7 @@ public class ClusterValidator {
                 m == ConversionMode.ANNOTATED_TRIPLE_EXPANDED);
 
         if (isAssert && !in_G_in && !allowAssert) {
-            throw new RuntimeException("Assertion not allowed");
+            return "Assertion not allowed";
         }
 
         boolean isBNode = c.getClusterNode().isAnon();
@@ -38,13 +38,13 @@ public class ClusterValidator {
         boolean okBNode = isBNode && isLocal && hasMetadata;
 
         if ((m == ConversionMode.REIFIED_TRIPLE || m == ConversionMode.ANNOTATED_TRIPLE) && !okBNode) {
-            throw new RuntimeException("Requires blank node, locality and metadata");
+            return "Requires blank node, locality and metadata";
         }
 
         if (m == ConversionMode.ANNOTATED_TRIPLE_EXPLICIT && !hasMetadata) {
-            throw new RuntimeException("Requires metadata declaration");
+            return "Requires metadata declaration";
         }
 
-        return true;
+        return null;
     }
 }
