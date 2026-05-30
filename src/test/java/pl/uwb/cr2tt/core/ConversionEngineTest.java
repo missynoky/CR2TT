@@ -2,6 +2,7 @@ package pl.uwb.cr2tt.core;
 
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
+import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.RDFDataMgr;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -69,8 +70,31 @@ public class ConversionEngineTest {
         Dataset resultDataset = DatasetFactory.create();
         RDFDataMgr.read(resultDataset, context.getOutputFile().getAbsolutePath());
 
-        org.apache.jena.rdf.model.Model namedGraph = resultDataset.getNamedModel("ex:Graph1");
+        Model namedGraph = resultDataset.getNamedModel("ex:Graph1");
         assertFalse(namedGraph.isEmpty(), "The named graph should contain triples, but it is empty.");
+    }
+
+    @Test
+    public void shouldPreserveMultipleNamedGraphsAndTheirContent() {
+        File inputFile = new File(EXAMPLES_DIR + "input_named_multi.trig");
+        File outputFile = tempDir.resolve("output_multi.trig").toFile();
+
+        ConversionContext context = createContext(inputFile, outputFile, ConversionMode.REIFIED_TRIPLE_EXPANDED, false);
+        ConversionEngine engine = new ConversionEngine(context);
+
+        engine.run();
+
+        Dataset resultDataset = DatasetFactory.create();
+        RDFDataMgr.read(resultDataset, context.getOutputFile().getAbsolutePath());
+
+        assertTrue(resultDataset.containsNamedModel("http://example.org/Graph1"), "Graph1 should exist.");
+        assertTrue(resultDataset.containsNamedModel("http://example.org/Graph2"), "Graph2 should exist.");
+
+        Model graph1 = resultDataset.getNamedModel("http://example.org/Graph1");
+        assertFalse(graph1.isEmpty(), "Graph1 should not be empty.");
+
+        Model graph2 = resultDataset.getNamedModel("http://example.org/Graph2");
+        assertFalse(graph2.isEmpty(), "Graph2 should not be empty.");
     }
 
     @Test

@@ -1,0 +1,18 @@
+@prefix ex: <http://example.org/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+ex:Graph1 {
+    ex:A1 ex:p ex:O1 .
+    ex:s1 rdf:reifies <<( ex:A1 ex:p ex:O1 )>> .
+
+    ex:A2 ex:p ex:O2 .
+    ex:s2 rdf:reifies <<( ex:A2 ex:p ex:O2 )>> .
+}
+
+ex:Graph2 {
+    ex:B1 ex:p ex:O3 .
+    ex:s3 rdf:reifies <<( ex:B1 ex:p ex:O3 )>> .
+
+    ex:B2 ex:p ex:O4 .
+    ex:s4 rdf:reifies <<( ex:B2 ex:p ex:O4 )>> .
+}
