@@ -39,25 +39,39 @@ public class ConversionEngineTest {
         );
     }
 
-//    @Test
-//    public void shouldPreserveNamedGraphsDuringConversion() {
-//        File inputFile = new File(EXAMPLES_DIR + "input_named.trig");
-//        File outputFile = tempDir.resolve("output.trig").toFile();
-//
-//        ConversionContext context = createContext(inputFile, outputFile, ConversionMode.REIFIED_TRIPLE_EXPANDED, false);
-//        ConversionEngine engine = new ConversionEngine(context);
-//
-//        boolean isValidResult = engine.run();
-//
-//        assertTrue(isValidResult, "Conversion should finish without errors.");
-//        assertTrue(context.getOutputFile().exists(), "Output file should be created.");
-//
-//        Dataset resultDataset = DatasetFactory.create();
-//        RDFDataMgr.read(resultDataset, context.getOutputFile().getAbsolutePath());
-//
-//        assertTrue(resultDataset.containsNamedModel("ex:Graph1"),
-//                "Output file should preserve the named graph 'ex:Graph1'.");
-//    }
+    @Test
+    public void shouldPreserveNamedGraphExistenceDuringConversion() {
+        File inputFile = new File(EXAMPLES_DIR + "input_named.trig");
+        File outputFile = tempDir.resolve("output_existence.trig").toFile();
+
+        ConversionContext context = createContext(inputFile, outputFile, ConversionMode.REIFIED_TRIPLE_EXPANDED, false);
+        ConversionEngine engine = new ConversionEngine(context);
+
+        engine.run();
+
+        Dataset resultDataset = DatasetFactory.create();
+        RDFDataMgr.read(resultDataset, context.getOutputFile().getAbsolutePath());
+
+        assertTrue(resultDataset.containsNamedModel("ex:Graph1"),
+                "Output file should preserve the named graph.");
+    }
+
+    @Test
+    public void shouldPreserveNamedGraphContentDuringConversion() {
+        File inputFile = new File(EXAMPLES_DIR + "input_named.trig");
+        File outputFile = tempDir.resolve("output_content.trig").toFile();
+
+        ConversionContext context = createContext(inputFile, outputFile, ConversionMode.REIFIED_TRIPLE_EXPANDED, false);
+        ConversionEngine engine = new ConversionEngine(context);
+
+        engine.run();
+
+        Dataset resultDataset = DatasetFactory.create();
+        RDFDataMgr.read(resultDataset, context.getOutputFile().getAbsolutePath());
+
+        org.apache.jena.rdf.model.Model namedGraph = resultDataset.getNamedModel("ex:Graph1");
+        assertFalse(namedGraph.isEmpty(), "The named graph should contain triples, but it is empty.");
+    }
 
     @Test
     public void shouldReturnFalseAndSkipExportWhenValidateOnlyFails() {

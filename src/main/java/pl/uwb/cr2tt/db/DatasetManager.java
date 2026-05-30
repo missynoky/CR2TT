@@ -70,4 +70,11 @@ public class DatasetManager {
     public File getDbDirectory() {
         return dbDirectory;
     }
+
+    public Dataset getDataset() {
+        if (dataset == null) {
+            throw new IllegalStateException("Dataset is not connected.");
+        }
+        return dataset;
+    }
 }

@@ -47,15 +47,6 @@ public class ConversionEngine {
         DatasetManager inDb = new DatasetManager(inDbDir);
         DatasetManager outDb = new DatasetManager(outDbDir);
 
-//        File inDbDir = new File("C:\\Users\\magda\\Desktop\\studia\\Praca magisterska\\program\\data\\tdb2_in_db");
-//        File outDbDir = new File("C:\\Users\\magda\\Desktop\\studia\\Praca magisterska\\program\\data\\tdb2_out_db");
-//        if (!outDbDir.exists()) {
-//            outDbDir.mkdirs();
-//        }
-//
-//        DatasetManager inDb = new DatasetManager(inDbDir);
-//        DatasetManager outDb = new DatasetManager(outDbDir);
-
         try {
             DatasetImporter importer = new DatasetImporter();
             importer.importData(inDbDir, inputFile);
@@ -119,13 +110,12 @@ public class ConversionEngine {
 
                 outDb.beginWrite();
 
-                Model newOutGraph = outDb.getDefaultModel();
                 Model newTombstoneGraph = outDb.getNamedModel("urn:cr2tt:temp:tombstones");
 
-                migrator.migrate(inGraph, newOutGraph, newTombstoneGraph, outDb);
+                migrator.migrate(inDb, outDb, newTombstoneGraph);
 
                 DatasetExporter exporter = new DatasetExporter();
-                exporter.exportData(newOutGraph, outputFile);
+                exporter.exportData(outDb.getDataset(), inputFile, outputFile);
 
                 Logger.info("committing final dataset to database.");
                 outDb.commit();
