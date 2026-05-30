@@ -2,10 +2,14 @@ package pl.uwb.cr2tt.core;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.StatementTerm;
 import org.apache.jena.riot.RDFDataMgr;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import pl.uwb.cr2tt.model.ConversionMode;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -16,11 +20,13 @@ class ClusterConverterTest {
 
         Model actualModel = ModelFactory.createDefaultModel();
 
-        ClusterExtractor extractor = new ClusterExtractor();
+        ClusterExtractorNew extractor = new ClusterExtractorNew();
         ClusterConverter converter = new ClusterConverter();
 
+        Map<String, StatementTerm> resolvedTerms = new HashMap<>();
+
         extractor.extractAndProcess(inModel, cluster -> {
-            converter.convertCluster(cluster, mode, actualModel);
+            converter.convertCluster(cluster, mode, actualModel, resolvedTerms);
         });
 
         Model expectedModel = RDFDataMgr.loadModel(expectedFilePath);

@@ -92,8 +92,15 @@ public class Main implements Callable<Integer> {
 
         try {
             ConversionEngine engine = new ConversionEngine(context);
-            engine.run();
+            boolean isValidResult = engine.run();
+
+            if (context.isValidateOnly() && !isValidResult) {
+                Logger.error("Validation errors detected.");
+                return -1;
+            }
+
             return 0;
+
         } catch (Exception e) {
             Logger.error("conversion process failed: " + e.getMessage());
             return -1;

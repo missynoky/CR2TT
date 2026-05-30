@@ -3,6 +3,7 @@ package pl.uwb.cr2tt.core;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.rdf.model.StatementTerm;
 import org.apache.jena.vocabulary.RDF;
 import pl.uwb.cr2tt.db.DatasetManager;
 import pl.uwb.cr2tt.io.DatasetExporter;
@@ -17,6 +18,7 @@ import pl.uwb.cr2tt.utils.TimeUtils;
 import java.io.File;
 import java.nio.file.Files;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,7 +30,7 @@ public class ConversionEngine {
         this.context = context;
     }
 
-    public void run() {
+    public boolean run() {
         File inputFile = context.getInputFile();
         File outputFile = context.getOutputFile();
         boolean validateOnly = context.isValidateOnly();
@@ -45,6 +47,15 @@ public class ConversionEngine {
         DatasetManager inDb = new DatasetManager(inDbDir);
         DatasetManager outDb = new DatasetManager(outDbDir);
 
+//        File inDbDir = new File("C:\\Users\\magda\\Desktop\\studia\\Praca magisterska\\program\\data\\tdb2_in_db");
+//        File outDbDir = new File("C:\\Users\\magda\\Desktop\\studia\\Praca magisterska\\program\\data\\tdb2_out_db");
+//        if (!outDbDir.exists()) {
+//            outDbDir.mkdirs();
+//        }
+//
+//        DatasetManager inDb = new DatasetManager(inDbDir);
+//        DatasetManager outDb = new DatasetManager(outDbDir);
+
         try {
             DatasetImporter importer = new DatasetImporter();
             importer.importData(inDbDir, inputFile);
@@ -58,7 +69,8 @@ public class ConversionEngine {
             Logger.info("copying namespace prefixes.");
             outGraph.setNsPrefixes(inGraph.getNsPrefixMap());
 
-            ClusterExtractor extractor = new ClusterExtractor();
+            //ClusterExtractor extractor = new ClusterExtractor();
+            ClusterExtractorNew extractor = new ClusterExtractorNew();
             ClusterValidator validator = new ClusterValidator();
             ClusterConverter converter = new ClusterConverter();
             StandardTriplesMigrator migrator = new StandardTriplesMigrator();
@@ -67,6 +79,8 @@ public class ConversionEngine {
             AtomicInteger validCounter = new AtomicInteger(0);
             AtomicInteger invalidCounter = new AtomicInteger(0);
             Map<String, Integer> errorSummary = new ConcurrentHashMap<>();
+
+            Map<String, StatementTerm> resolvedTripleTerms = new HashMap<>();
 
             Logger.info("starting extraction, validation and conversion process.");
 
@@ -77,7 +91,7 @@ public class ConversionEngine {
                     validCounter.incrementAndGet();
 
                     if (!validateOnly) {
-                        converter.convertCluster(cluster, mode, outGraph);
+                        converter.convertCluster(cluster, mode, outGraph, resolvedTripleTerms);
                         markClusterAsProcessed(cluster, tombstoneGraph);
                     }
                 } else {
@@ -92,19 +106,28 @@ public class ConversionEngine {
             Logger.info("invalid clusters: " + invalidCounter.get());
 
             if (invalidCounter.get() > 0) {
-                Logger.info("Reasons for rejection:");
+                Logger.info("reasons for rejection:");
                 errorSummary.forEach((reason, count) -> {
                     Logger.info(reason + ": " + count);
                 });
             }
 
             if (!validateOnly) {
-                migrator.migrate(inGraph, outGraph, tombstoneGraph);
+                Logger.info("saving converted clusters.");
+                outDb.commit();
+                Logger.info("clusters saved successfully.");
+
+                outDb.beginWrite();
+
+                Model newOutGraph = outDb.getDefaultModel();
+                Model newTombstoneGraph = outDb.getNamedModel("urn:cr2tt:temp:tombstones");
+
+                migrator.migrate(inGraph, newOutGraph, newTombstoneGraph, outDb);
 
                 DatasetExporter exporter = new DatasetExporter();
-                exporter.exportData(outGraph, outputFile);
+                exporter.exportData(newOutGraph, outputFile);
 
-                Logger.info("committing converted data to the output database.");
+                Logger.info("committing final dataset to database.");
                 outDb.commit();
                 Logger.info("transaction committed. Output database updated successfully.");
 
@@ -112,6 +135,8 @@ public class ConversionEngine {
                 Logger.info("validate-only active. Skipping migration and export.");
                 outDb.abort();
             }
+
+            return invalidCounter.get() == 0;
 
         } catch (RuntimeException ex) {
             outDb.abort();

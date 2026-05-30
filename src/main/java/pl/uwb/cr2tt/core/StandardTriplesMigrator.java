@@ -3,11 +3,12 @@ package pl.uwb.cr2tt.core;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
+import pl.uwb.cr2tt.db.DatasetManager;
 import pl.uwb.cr2tt.utils.Logger;
 
 public class StandardTriplesMigrator {
 
-    public void migrate(Model inGraph, Model outGraph, Model tombstoneGraph) {
+    public void migrate(Model inGraph, Model outGraph, Model tombstoneGraph, DatasetManager outDb) {
         Logger.info("starting to copy regular triples and invalid clusters.");
         long copiedTriples = 0;
 
@@ -25,6 +26,10 @@ public class StandardTriplesMigrator {
 
                 if (copiedTriples % 1000000 == 0) {
                     Logger.info("copied " + copiedTriples + " triples to the output database.");
+                    outDb.commit();
+                    outDb.beginWrite();
+                    outGraph = outDb.getDefaultModel();
+                    tombstoneGraph = outDb.getNamedModel("urn:cr2tt:temp:tombstones");
                 }
             }
         } finally {

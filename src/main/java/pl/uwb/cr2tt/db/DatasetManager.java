@@ -14,18 +14,16 @@ public class DatasetManager {
 
     public DatasetManager(File dbDirectory) {
         this.dbDirectory = dbDirectory;
+        Logger.info("connecting to TDB2 database at: " + dbDirectory.getAbsolutePath());
+        this.dataset = TDB2Factory.connectDataset(dbDirectory.getAbsolutePath());
     }
 
     public void beginRead() {
-        Logger.info("connecting to TDB2 database at: " + dbDirectory.getAbsolutePath());
-        dataset = TDB2Factory.connectDataset(dbDirectory.getAbsolutePath());
         dataset.begin(ReadWrite.READ);
     }
 
 
     public void beginWrite() {
-        Logger.info("connecting to TDB2 database at: " + dbDirectory.getAbsolutePath());
-        dataset = TDB2Factory.connectDataset(dbDirectory.getAbsolutePath());
         dataset.begin(ReadWrite.WRITE);
     }
 
@@ -45,8 +43,8 @@ public class DatasetManager {
 
     public void commit() {
         if (dataset != null && dataset.isInTransaction()) {
-            Logger.info("committing transaction for database: " + dbDirectory.getName());
             dataset.commit();
+            dataset.end();
         }
     }
 
@@ -54,12 +52,15 @@ public class DatasetManager {
         if (dataset != null && dataset.isInTransaction()) {
             Logger.warn("aborting transaction. Rolling back changes for database: " + dbDirectory.getName());
             dataset.abort();
+            dataset.end();
         }
     }
 
     public void close() {
         if (dataset != null) {
-            dataset.end();
+            if (dataset.isInTransaction()) {
+                dataset.end();
+            }
             dataset.close();
             Logger.info("database connection closed safely: " + dbDirectory.getName());
             dataset = null;

@@ -121,8 +121,9 @@ public class ClusterExtractor {
         int nSpo = calculateNSpo(inGraph, s, p, o);
         boolean isLocal = !inGraph.contains(null, null, cNode);
         boolean inGIn = inGraph.contains(s, p, o);
+        boolean isNestedTarget = false;
 
-        Cluster cluster = new Cluster(cNode, s, p, o, metadata, nSpo, inGIn, isLocal);
+        Cluster cluster = new Cluster(cNode, s, p, o, metadata, nSpo, inGIn, isLocal, isNestedTarget);
         evaluateDependencyAndProcess(cluster, inGraph, clusterProcessor);
     }
 

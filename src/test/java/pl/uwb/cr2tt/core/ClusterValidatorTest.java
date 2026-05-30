@@ -46,7 +46,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     Collections.emptySet(),
-                    2, true, true
+                    2, true, true, false
             );
 
             String result = validator.validateCluster(
@@ -66,7 +66,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     Collections.emptySet(),
-                    5, true, true
+                    5, true, true, false
             );
 
             String result = validator.validateCluster(
@@ -86,7 +86,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     Collections.emptySet(),
-                    2, true, true
+                    2, true, true, false
             );
 
             String result = validator.validateCluster(
@@ -110,7 +110,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     Collections.emptySet(),
-                    1, false, true
+                    1, false, true, false
             );
 
             String result = validator.validateCluster(
@@ -130,7 +130,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     Collections.emptySet(),
-                    1, true, true
+                    1, true, true, false
             );
 
             String result = validator.validateCluster(
@@ -150,7 +150,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     Collections.emptySet(),
-                    1, true, true
+                    1, true, true, false
             );
 
             String result = validator.validateCluster(
@@ -170,7 +170,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     Collections.emptySet(),
-                    1, false, true
+                    1, false, true, false
             );
 
             String result = validator.validateCluster(
@@ -194,7 +194,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     Collections.emptySet(),
-                    1, false, true
+                    1, false, true, false
             );
 
             String result = validator.validateCluster(
@@ -214,7 +214,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     Collections.emptySet(),
-                    1, false, true
+                    1, false, true, false
             );
 
             String result = validator.validateCluster(
@@ -234,7 +234,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     Collections.emptySet(),
-                    1, true, true
+                    1, true, true, false
             );
 
             String result = validator.validateCluster(
@@ -259,7 +259,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     createMetadata(),
-                    1, true, true
+                    1, true, true, false
             );
 
             String result = validator.validateCluster(
@@ -279,7 +279,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     createMetadata(),
-                    1, true, false
+                    1, true, false, false
             );
 
             String result = validator.validateCluster(
@@ -299,7 +299,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     Collections.emptySet(),
-                    1, true, true
+                    1, true, true, false
             );
 
             String result = validator.validateCluster(
@@ -319,7 +319,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     createMetadata(),
-                    1, true, true
+                    1, true, true, false
             );
 
             String result = validator.validateCluster(
@@ -343,7 +343,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     Collections.emptySet(),
-                    1, true, true
+                    1, true, true, false
             );
 
             String result = validator.validateCluster(
@@ -363,7 +363,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     createMetadata(),
-                    1, true, true
+                    1, true, true, false
             );
 
             String result = validator.validateCluster(
@@ -387,7 +387,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     Collections.emptySet(),
-                    1, false, true
+                    1, false, true, false
             );
 
             String result = validator.validateCluster(
@@ -407,7 +407,7 @@ class ClusterValidatorTest {
             Cluster cluster = new Cluster(
                     testNode, null, null, null,
                     createMetadata(),
-                    1, false, true
+                    1, false, true, false
             );
 
             String result = validator.validateCluster(

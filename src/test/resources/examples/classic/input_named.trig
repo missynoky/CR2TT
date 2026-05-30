@@ -1,0 +1,9 @@
+@prefix ex: <ex:> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+ex:Graph1 {
+    ex:st1 rdf:subject ex:Alice ;
+           rdf:predicate ex:knows ;
+           rdf:object ex:Bob ;
+           rdf:type rdf:Statement .
+}

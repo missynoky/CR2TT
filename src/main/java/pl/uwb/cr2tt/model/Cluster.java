@@ -17,9 +17,10 @@ public class Cluster {
 
     private final int nSpo;
     private final boolean inGIn;
+    private final boolean isNestedTarget;
 
     public Cluster(Resource clusterNode, Resource subjectNode, Property predicateNode,
-                   RDFNode objectNode, Set<Statement> metadata, int nSpo, boolean inGIn, boolean isLocal) {
+                   RDFNode objectNode, Set<Statement> metadata, int nSpo, boolean inGIn, boolean isLocal, boolean isNestedTarget) {
         this.clusterNode = clusterNode;
         this.subjectNode = subjectNode;
         this.predicateNode = predicateNode;
@@ -28,6 +29,7 @@ public class Cluster {
         this.nSpo = nSpo;
         this.inGIn = inGIn;
         this.isLocal = isLocal;
+        this.isNestedTarget = isNestedTarget;
     }
 
     public Resource getClusterNode() { return clusterNode; }
@@ -38,4 +40,5 @@ public class Cluster {
     public int getNSpo() { return nSpo; }
     public boolean isInGIn() { return inGIn; }
     public boolean isLocal() { return isLocal; }
+    public boolean isNestedTarget() { return isNestedTarget; }
 }
