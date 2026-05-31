@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -71,8 +72,11 @@ public class ConversionEngine {
 
             Logger.info("starting extraction, validation and conversion process.");
 
+            String runId = UUID.randomUUID().toString();
+            checkGraphNameCollisions(inDataset, runId);
+
             Logger.info("processing default graph.");
-            Model defaultTombstone = outDb.getNamedModel("urn:cr2tt:temp:tombstones:default");
+            Model defaultTombstone = outDb.getNamedModel("urn:cr2tt:temp:tombstones:" + runId + ":default");
             processGraph(inDataset.getDefaultModel(), outDataset.getDefaultModel(), mode, baseTriplePolicy,
                     allowAssertingConversion, validateOnly, validCounter, invalidCounter, errorSummary,
                     defaultTombstone, keepStatementType);
@@ -82,7 +86,7 @@ public class ConversionEngine {
                 String graphName = graphNames.next();
                 Logger.info("processing named graph: " + graphName);
 
-                String namedTombstoneUri = graphName + "-tombstones";
+                String namedTombstoneUri = graphName + "-tombstones-" + runId;
                 Model namedTombstone = outDb.getNamedModel(namedTombstoneUri);
 
                 processGraph(inDataset.getNamedModel(graphName), outDataset.getNamedModel(graphName),
@@ -109,7 +113,7 @@ public class ConversionEngine {
 
                 outDb.beginWrite();
 
-                migrator.migrate(inDb, outDb);
+                migrator.migrate(inDb, outDb, runId);
 
                 DatasetExporter exporter = new DatasetExporter();
                 exporter.exportData(outDb.getDataset(), inputFile, outputFile);
@@ -143,6 +147,15 @@ public class ConversionEngine {
 
             Instant endTime = Instant.now();
             Logger.info("total execution time: " + TimeUtils.getExecutionTimeFormatted(startTime, endTime));
+        }
+    }
+
+    private void checkGraphNameCollisions(Dataset inDataset, String runId) {
+        Iterator<String> graphNames = inDataset.listNames();
+        while (graphNames.hasNext()) {
+            if (graphNames.next().contains(runId)) {
+                throw new RuntimeException("Input graph contains the generated UUID runId.");
+            }
         }
     }
 

@@ -11,28 +11,29 @@ import java.util.Iterator;
 
 public class StandardTriplesMigrator {
 
-    public void migrate(DatasetManager inDb, DatasetManager outDb) {
+    public void migrate(DatasetManager inDb, DatasetManager outDb, String runId) {
         Logger.info("starting to copy regular triples and invalid clusters.");
         long copiedTriples = 0;
 
         Dataset inDataset = inDb.getDataset();
         Dataset outDataset = outDb.getDataset();
 
-        String defaultTombstoneUri = "urn:cr2tt:temp:tombstones:default";
+        String defaultTombstoneUri = "urn:cr2tt:temp:tombstones:" + runId + ":default";
         Model defaultTombstoneGraph = outDb.getNamedModel(defaultTombstoneUri);
+
         copiedTriples = copyModel(inDataset.getDefaultModel(), outDataset.getDefaultModel(),
-                defaultTombstoneGraph, outDb, copiedTriples, defaultTombstoneUri);
+                defaultTombstoneGraph, outDb, copiedTriples, defaultTombstoneUri, null);
         defaultTombstoneGraph.removeAll();
 
         Iterator<String> graphNames = inDataset.listNames();
         while (graphNames.hasNext()) {
             String graphName = graphNames.next();
 
-            String namedTombstoneUri = graphName + "-tombstones";
+            String namedTombstoneUri = graphName + "-tombstones-" + runId;
             Model namedTombstoneGraph = outDb.getNamedModel(namedTombstoneUri);
 
             copiedTriples = copyModel(inDataset.getNamedModel(graphName), outDataset.getNamedModel(graphName),
-                    namedTombstoneGraph, outDb, copiedTriples, namedTombstoneUri);
+                    namedTombstoneGraph, outDb, copiedTriples, namedTombstoneUri, graphName);
 
             namedTombstoneGraph.removeAll();
         }
@@ -41,7 +42,8 @@ public class StandardTriplesMigrator {
         Logger.info("temporary tombstone graphs cleared.");
     }
 
-    private long copyModel(Model inGraph, Model outGraph, Model tombstoneGraph, DatasetManager outDb, long copiedTriples, String tombstoneUri) {
+    private long copyModel(Model inGraph, Model outGraph, Model tombstoneGraph, DatasetManager outDb,
+                           long copiedTriples, String tombstoneUri, String targetGraphUri) {
         StmtIterator it = inGraph.listStatements();
         try {
             while (it.hasNext()) {
@@ -55,10 +57,13 @@ public class StandardTriplesMigrator {
                     Logger.info("copied " + copiedTriples + " triples to the output database.");
                     outDb.commit();
                     outDb.beginWrite();
-                    outGraph = outDb.getDataset().getNamedModel(outGraph.toString());
-                    if (outGraph == null) {
+
+                    if (targetGraphUri == null) {
                         outGraph = outDb.getDefaultModel();
+                    } else {
+                        outGraph = outDb.getNamedModel(targetGraphUri);
                     }
+
                     tombstoneGraph = outDb.getNamedModel(tombstoneUri);
                 }
             }
