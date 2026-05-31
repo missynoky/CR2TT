@@ -28,6 +28,7 @@ class CliValidatorTest {
                     ConversionMode.REIFIED_TRIPLE_EXPANDED,
                     BaseTriplePolicy.PRESERVE,
                     false,
+                    false,
                     false
             );
         }
@@ -86,6 +87,7 @@ class CliValidatorTest {
                     outputFile,
                     ConversionMode.REIFIED_TRIPLE_EXPANDED,
                     BaseTriplePolicy.PRESERVE,
+                    false,
                     false,
                     false
             );
@@ -153,21 +155,24 @@ class CliValidatorTest {
             validIn = Files.createFile(inPath).toFile();
         }
 
-        private ConversionContext createMockContext(File outputFile, ConversionMode mode, boolean allowAssert, boolean validateOnly) {
+        private ConversionContext createMockContext(File outputFile, ConversionMode mode, boolean allowAssert,
+                                                    boolean validateOnly) {
             return new ConversionContext(
                     validIn,
                     outputFile,
                     mode,
                     BaseTriplePolicy.PRESERVE,
                     allowAssert,
-                    validateOnly
+                    validateOnly,
+                    false
             );
         }
 
         @Test
         void shouldPassAndIgnoreOutputWhenValidateOnlyIsActive() {
             File validOut = tempDir.resolve("out.ttl").toFile();
-            ConversionContext context = createMockContext(validOut, ConversionMode.REIFIED_TRIPLE_EXPANDED, false, true);
+            ConversionContext context = createMockContext(validOut, ConversionMode.REIFIED_TRIPLE_EXPANDED,
+                    false, true);
             CliValidator validator = new CliValidator(context);
 
             boolean result = validator.initialValidator();
@@ -177,7 +182,8 @@ class CliValidatorTest {
 
         @Test
         void shouldPassAndWarnWhenAllowAssertingIsUsedWithNonAnnotatedMode() {
-            ConversionContext context = createMockContext(null, ConversionMode.REIFIED_TRIPLE, true, false);
+            ConversionContext context = createMockContext(null, ConversionMode.REIFIED_TRIPLE, true,
+                    false);
             CliValidator validator = new CliValidator(context);
 
             boolean result = validator.initialValidator();

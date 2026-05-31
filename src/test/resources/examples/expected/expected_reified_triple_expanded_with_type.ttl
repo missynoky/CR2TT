@@ -1,0 +1,18 @@
+PREFIX ex: <http://example.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+ex:stmt1 rdf:reifies <<( ex:Jan ex:knows ex:Anna )>> ;
+         a rdf:Statement ;
+         ex:accordingTo ex:Source1 ;
+         ex:confidence "0.9"^^xsd:decimal .
+
+ex:stmt2 rdf:reifies <<( ex:Piotr ex:likes ex:Coffee )>> ;
+         a rdf:Statement ;
+         ex:accordingTo ex:Source2 ;
+         ex:confidence "0.8"^^xsd:decimal .
+
+ex:stmt3 rdf:reifies <<( ex:Ewa ex:livesIn ex:Warsaw )>> ;
+         a rdf:Statement ;
+         ex:accordingTo ex:Source3 ;
+         ex:confidence "0.99"^^xsd:decimal .

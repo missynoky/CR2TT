@@ -29,14 +29,16 @@ public class ConversionEngineTest {
         Logger.init(false);
     }
 
-    private ConversionContext createContext(File inputFile, File outputFile, ConversionMode mode, boolean validateOnly) {
+    private ConversionContext createContext(File inputFile, File outputFile, ConversionMode mode,
+                                            boolean validateOnly) {
         return new ConversionContext(
                 inputFile,
                 outputFile,
                 mode,
                 BaseTriplePolicy.PRESERVE,
                 false,
-                validateOnly
+                validateOnly,
+                false
         );
     }
 
@@ -45,7 +47,8 @@ public class ConversionEngineTest {
         File inputFile = new File(EXAMPLES_DIR + "input_named.trig");
         File outputFile = tempDir.resolve("output_existence.trig").toFile();
 
-        ConversionContext context = createContext(inputFile, outputFile, ConversionMode.REIFIED_TRIPLE_EXPANDED, false);
+        ConversionContext context = createContext(inputFile, outputFile, ConversionMode.REIFIED_TRIPLE_EXPANDED,
+                false);
         ConversionEngine engine = new ConversionEngine(context);
 
         engine.run();
@@ -62,7 +65,8 @@ public class ConversionEngineTest {
         File inputFile = new File(EXAMPLES_DIR + "input_named.trig");
         File outputFile = tempDir.resolve("output_content.trig").toFile();
 
-        ConversionContext context = createContext(inputFile, outputFile, ConversionMode.REIFIED_TRIPLE_EXPANDED, false);
+        ConversionContext context = createContext(inputFile, outputFile, ConversionMode.REIFIED_TRIPLE_EXPANDED,
+                false);
         ConversionEngine engine = new ConversionEngine(context);
 
         engine.run();
@@ -79,7 +83,8 @@ public class ConversionEngineTest {
         File inputFile = new File(EXAMPLES_DIR + "input_named_multi.trig");
         File outputFile = tempDir.resolve("output_multi.trig").toFile();
 
-        ConversionContext context = createContext(inputFile, outputFile, ConversionMode.REIFIED_TRIPLE_EXPANDED, false);
+        ConversionContext context = createContext(inputFile, outputFile, ConversionMode.REIFIED_TRIPLE_EXPANDED,
+                false);
         ConversionEngine engine = new ConversionEngine(context);
 
         engine.run();
@@ -102,7 +107,8 @@ public class ConversionEngineTest {
         File inputFile = new File(EXAMPLES_DIR + "input_explicit.ttl");
         File outputFile = tempDir.resolve("output.ttl").toFile();
 
-        ConversionContext context = createContext(inputFile, outputFile, ConversionMode.REIFIED_TRIPLE, true);
+        ConversionContext context = createContext(inputFile, outputFile, ConversionMode.REIFIED_TRIPLE,
+                true);
         ConversionEngine engine = new ConversionEngine(context);
 
         boolean isValidResult = engine.run();

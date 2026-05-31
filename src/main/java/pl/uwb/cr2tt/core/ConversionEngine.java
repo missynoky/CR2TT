@@ -39,6 +39,7 @@ public class ConversionEngine {
         boolean allowAssertingConversion = context.isAllowAssertingConversion();
         ConversionMode mode = context.getMode();
         BaseTriplePolicy baseTriplePolicy = context.getBaseTriplePolicy();
+        boolean keepStatementType = context.isKeepStatementType();
 
         Instant startTime = Instant.now();
         Logger.info("initializing temporary databases.");
@@ -73,7 +74,8 @@ public class ConversionEngine {
             Logger.info("processing default graph.");
             Model defaultTombstone = outDb.getNamedModel("urn:cr2tt:temp:tombstones:default");
             processGraph(inDataset.getDefaultModel(), outDataset.getDefaultModel(), mode, baseTriplePolicy,
-                    allowAssertingConversion, validateOnly, validCounter, invalidCounter, errorSummary, defaultTombstone);
+                    allowAssertingConversion, validateOnly, validCounter, invalidCounter, errorSummary,
+                    defaultTombstone, keepStatementType);
 
             Iterator<String> graphNames = inDataset.listNames();
             while (graphNames.hasNext()) {
@@ -85,7 +87,7 @@ public class ConversionEngine {
 
                 processGraph(inDataset.getNamedModel(graphName), outDataset.getNamedModel(graphName),
                         mode, baseTriplePolicy, allowAssertingConversion, validateOnly, validCounter,
-                        invalidCounter, errorSummary, namedTombstone);
+                        invalidCounter, errorSummary, namedTombstone, keepStatementType);
             }
 
             Logger.info("extraction, validation and conversion process finished.");
@@ -147,7 +149,7 @@ public class ConversionEngine {
     private void processGraph(Model inGraph, Model outGraph, ConversionMode mode, BaseTriplePolicy baseTriplePolicy,
                               boolean allowAssertingConversion, boolean validateOnly,
                               AtomicInteger validCounter, AtomicInteger invalidCounter, Map<String, Integer> errorSummary,
-                              Model tombstoneGraph) {
+                              Model tombstoneGraph, boolean keepStatementType) {
         ClusterExtractorNew extractor = new ClusterExtractorNew();
         ClusterValidator validator = new ClusterValidator();
         ClusterConverter converter = new ClusterConverter();
@@ -160,7 +162,7 @@ public class ConversionEngine {
                 validCounter.incrementAndGet();
 
                 if (!validateOnly) {
-                    converter.convertCluster(cluster, mode, outGraph, resolvedTripleTerms);
+                    converter.convertCluster(cluster, mode, outGraph, resolvedTripleTerms, keepStatementType);
                     markClusterAsProcessed(cluster, tombstoneGraph);
                 }
             } else {

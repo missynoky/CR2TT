@@ -1,13 +1,15 @@
 package pl.uwb.cr2tt.core;
 
 import org.apache.jena.rdf.model.*;
+import org.apache.jena.vocabulary.RDF;
 import pl.uwb.cr2tt.model.Cluster;
 import pl.uwb.cr2tt.model.ConversionMode;
 
 import java.util.Map;
 
 public class ClusterConverter {
-    public void convertCluster(Cluster cluster, ConversionMode mode, Model outGraph, Map<String, StatementTerm> resolvedTerms) {
+    public void convertCluster(Cluster cluster, ConversionMode mode, Model outGraph,
+                               Map<String, StatementTerm> resolvedTerms, boolean keepStatementType) {
         Resource r = cluster.getClusterNode();
         Resource s = cluster.getSubjectNode();
         Property p = cluster.getPredicateNode();
@@ -33,6 +35,7 @@ public class ClusterConverter {
         switch (mode) {
             case REIFIED_TRIPLE_EXPANDED:
                 outGraph.createReifier(r, baseTriple);
+                addStatementType(outGraph, r, keepStatementType);
 
                 for (Statement metaStmt : cluster.getMetadata()) {
                     outGraph.add(metaStmt);
@@ -41,6 +44,7 @@ public class ClusterConverter {
 
             case REIFIED_TRIPLE:
                 Resource anonymousReifier = outGraph.createReifier(baseTriple);
+                addStatementType(outGraph, anonymousReifier, keepStatementType);
 
                 for (Statement metaStmt : cluster.getMetadata()) {
                     outGraph.add(anonymousReifier, metaStmt.getPredicate(), metaStmt.getObject());
@@ -49,6 +53,7 @@ public class ClusterConverter {
 
             case REIFIED_TRIPLE_EXPLICIT:
                 outGraph.createReifier(r, baseTriple);
+                addStatementType(outGraph, r, keepStatementType);
 
                 if (!cluster.getMetadata().isEmpty()) {
                     for (Statement metaStmt : cluster.getMetadata()) {
@@ -59,8 +64,8 @@ public class ClusterConverter {
 
             case ANNOTATED_TRIPLE:
                 outGraph.add(baseTriple);
-
                 Resource anonReifier = outGraph.createReifier(baseTriple);
+                addStatementType(outGraph, anonReifier, keepStatementType);
 
                 for (Statement metaStmt : cluster.getMetadata()) {
                     outGraph.add(anonReifier, metaStmt.getPredicate(), metaStmt.getObject());
@@ -69,8 +74,8 @@ public class ClusterConverter {
 
             case ANNOTATED_TRIPLE_EXPLICIT:
                 outGraph.add(baseTriple);
-
                 outGraph.createReifier(r, baseTriple);
+                addStatementType(outGraph, r, keepStatementType);
 
                 for (Statement metaStmt : cluster.getMetadata()) {
                     outGraph.add(metaStmt);
@@ -79,8 +84,8 @@ public class ClusterConverter {
 
             case ANNOTATED_TRIPLE_EXPANDED:
                 outGraph.add(baseTriple);
-
                 outGraph.createReifier(r, baseTriple);
+                addStatementType(outGraph, r, keepStatementType);
 
                 if (!cluster.getMetadata().isEmpty()) {
                     for (Statement metaStmt : cluster.getMetadata()) {
@@ -93,6 +98,13 @@ public class ClusterConverter {
                 throw new IllegalArgumentException("Unsupported conversion mode: " + mode);
         }
     }
+
+    private void addStatementType(Model outGraph, Resource reifierNode, boolean keepStatementType) {
+        if (keepStatementType && reifierNode != null) {
+            outGraph.add(reifierNode, RDF.type, RDF.Statement);
+        }
+    }
+
     private String getNodeId(RDFNode node) {
         if (node == null) return "";
         if (node.isAnon()) {

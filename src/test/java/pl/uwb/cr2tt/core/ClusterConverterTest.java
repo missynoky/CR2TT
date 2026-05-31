@@ -15,23 +15,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ClusterConverterTest {
 
-    private void verifyConversion(String inputFilePath, String expectedFilePath, ConversionMode mode) {
+    private void verifyConversion(String inputFilePath, String expectedFilePath, ConversionMode mode, boolean keepStatementType) {
         Model inModel = RDFDataMgr.loadModel(inputFilePath);
-
         Model actualModel = ModelFactory.createDefaultModel();
 
         ClusterExtractorNew extractor = new ClusterExtractorNew();
         ClusterConverter converter = new ClusterConverter();
-
         Map<String, StatementTerm> resolvedTerms = new HashMap<>();
 
         extractor.extractAndProcess(inModel, cluster -> {
-            converter.convertCluster(cluster, mode, actualModel, resolvedTerms);
+            converter.convertCluster(cluster, mode, actualModel, resolvedTerms, keepStatementType);
         });
 
         Model expectedModel = RDFDataMgr.loadModel(expectedFilePath);
-
         assertTrue(actualModel.isIsomorphicWith(expectedModel), "Graphs are not isomorphic.");
+    }
+
+    private void verifyConversion(String inputFilePath, String expectedFilePath, ConversionMode mode) {
+        verifyConversion(inputFilePath, expectedFilePath, mode, false);
     }
 
     @Nested
@@ -59,6 +60,16 @@ class ClusterConverterTest {
         void shouldConvertAnnotatedTripleExpanded() {
             verifyConversion(INPUT_PATH, EXPECTED_DIR + "expected_annotated_triple_expanded.ttl", ConversionMode.ANNOTATED_TRIPLE_EXPANDED);
         }
+
+        @Test
+        void shouldConvertReifiedTripleExpandedWithStatementType() {
+            verifyConversion(INPUT_PATH, EXPECTED_DIR + "expected_reified_triple_expanded_with_type.ttl", ConversionMode.REIFIED_TRIPLE_EXPANDED, true);
+        }
+
+        @Test
+        void shouldConvertAnnotatedTripleExpandedWithStatementType() {
+            verifyConversion(INPUT_PATH, EXPECTED_DIR + "expected_annotated_triple_expanded_with_type.ttl", ConversionMode.ANNOTATED_TRIPLE_EXPANDED, true);
+        }
     }
 
     @Nested
@@ -75,6 +86,11 @@ class ClusterConverterTest {
         @Test
         void shouldConvertAnnotatedTriple() {
             verifyConversion(INPUT_PATH, EXPECTED_DIR + "expected_annotated_triple.ttl", ConversionMode.ANNOTATED_TRIPLE);
+        }
+
+        @Test
+        void shouldConvertReifiedTripleWithStatementType() {
+            verifyConversion(INPUT_PATH, EXPECTED_DIR + "expected_reified_triple_with_type.ttl", ConversionMode.REIFIED_TRIPLE, true);
         }
     }
 }

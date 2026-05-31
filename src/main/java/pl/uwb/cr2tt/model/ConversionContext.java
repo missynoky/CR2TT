@@ -9,16 +9,18 @@ public class ConversionContext {
     private final BaseTriplePolicy baseTriplePolicy;
     private final boolean allowAssertingConversion;
     private final boolean validateOnly;
+    private final boolean keepStatementType;
 
     public ConversionContext(File inputFile, File outputFile, ConversionMode mode,
                              BaseTriplePolicy baseTriplePolicy, boolean allowAssertingConversion,
-                             boolean validateOnly) {
+                             boolean validateOnly, boolean keepStatementType) {
         this.inputFile = inputFile;
         this.outputFile = outputFile;
         this.mode = mode;
         this.baseTriplePolicy = baseTriplePolicy;
         this.allowAssertingConversion = allowAssertingConversion;
         this.validateOnly = validateOnly;
+        this.keepStatementType = keepStatementType;
     }
 
     public File getInputFile() {
@@ -43,5 +45,9 @@ public class ConversionContext {
 
     public boolean isValidateOnly() {
         return validateOnly;
+    }
+
+    public boolean isKeepStatementType() {
+        return keepStatementType;
     }
 }

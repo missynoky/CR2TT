@@ -64,6 +64,12 @@ public class Main implements Callable<Integer> {
     private boolean validateOnly;
 
     @Option(
+            names = {"--keep-statement-type"},
+            description = "Preserves the 'a rdf:Statement' declaration by attaching it to the RDF 1.2 reifier node."
+    )
+    private boolean keepStatementType;
+
+    @Option(
             names = {"--verbose"},
             description = "Prints diagnostic messages about the conversion process."
     )
@@ -80,7 +86,8 @@ public class Main implements Callable<Integer> {
                 mode,
                 baseTriplePolicy,
                 allowAssertingConversion,
-                validateOnly
+                validateOnly,
+                keepStatementType
         );
 
         CliValidator cliValidator = new CliValidator(context);

@@ -1,0 +1,11 @@
+PREFIX ex: <http://example.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+<< ex:Jan ex:knows ex:Anna >> a rdf:Statement ;
+    ex:accordingTo ex:Source1 .
+
+<< ex:Piotr ex:likes ex:Coffee >> a rdf:Statement ;
+    ex:accordingTo ex:Source2 .
+
+<< ex:Ewa ex:livesIn ex:Warsaw >> a rdf:Statement ;
+    ex:accordingTo ex:Source3 .
