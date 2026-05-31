@@ -1,12 +1,14 @@
 package pl.uwb.cr2tt.io;
 
 import org.apache.jena.query.Dataset;
+import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import pl.uwb.cr2tt.utils.Logger;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.OutputStream;
 
 public class DatasetExporter {
 
@@ -17,7 +19,7 @@ public class DatasetExporter {
             Logger.info("exporting data to RDF file: " + outputFile.getAbsolutePath());
 
             try (FileOutputStream out = new FileOutputStream(outputFile)) {
-                RDFDataMgr.write(out, outDataset, format);
+                writeBasedOnFormat(out, outDataset, format);
                 Logger.info("export finished successfully.");
 
             } catch (Exception e) {
@@ -27,13 +29,21 @@ public class DatasetExporter {
             Logger.info("exporting data to standard output.");
 
             try {
-                RDFDataMgr.write(System.out, outDataset, format);
+                writeBasedOnFormat(System.out, outDataset, format);
                 System.out.flush();
                 Logger.info("export finished successfully.");
 
             } catch (Exception e) {
                 throw new RuntimeException("Failed to export dataset to standard output", e);
             }
+        }
+    }
+
+    private void writeBasedOnFormat(OutputStream out, Dataset dataset, RDFFormat format) {
+        if (format.getLang().equals(Lang.TURTLE) || format.getLang().equals(Lang.NTRIPLES)) {
+            RDFDataMgr.write(out, dataset.getDefaultModel(), format);
+        } else {
+            RDFDataMgr.write(out, dataset, format);
         }
     }
 
