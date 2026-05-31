@@ -4,6 +4,8 @@ import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
+
+import java.util.Objects;
 import java.util.Set;
 
 
@@ -21,11 +23,12 @@ public class Cluster {
 
     public Cluster(Resource clusterNode, Resource subjectNode, Property predicateNode,
                    RDFNode objectNode, Set<Statement> metadata, int nSpo, boolean inGIn, boolean isLocal, boolean isNestedTarget) {
-        this.clusterNode = clusterNode;
-        this.subjectNode = subjectNode;
-        this.predicateNode = predicateNode;
-        this.objectNode = objectNode;
-        this.metadata = metadata;
+        this.clusterNode = Objects.requireNonNull(clusterNode, "clusterNode cannot be null");
+        this.subjectNode = Objects.requireNonNull(subjectNode, "subjectNode cannot be null");
+        this.predicateNode = Objects.requireNonNull(predicateNode, "predicateNode cannot be null");
+        this.objectNode = Objects.requireNonNull(objectNode, "objectNode cannot be null");
+        this.metadata = Objects.requireNonNull(metadata, "metadata cannot be null");
+
         this.nSpo = nSpo;
         this.inGIn = inGIn;
         this.isLocal = isLocal;

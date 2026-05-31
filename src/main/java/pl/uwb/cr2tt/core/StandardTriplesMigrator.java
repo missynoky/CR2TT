@@ -11,27 +11,37 @@ import java.util.Iterator;
 
 public class StandardTriplesMigrator {
 
-    public void migrate(DatasetManager inDb, DatasetManager outDb, Model tombstoneGraph) {
+    public void migrate(DatasetManager inDb, DatasetManager outDb) {
         Logger.info("starting to copy regular triples and invalid clusters.");
         long copiedTriples = 0;
 
         Dataset inDataset = inDb.getDataset();
         Dataset outDataset = outDb.getDataset();
 
-        copiedTriples = copyModel(inDataset.getDefaultModel(), outDataset.getDefaultModel(), tombstoneGraph, outDb, copiedTriples);
+        String defaultTombstoneUri = "urn:cr2tt:temp:tombstones:default";
+        Model defaultTombstoneGraph = outDb.getNamedModel(defaultTombstoneUri);
+        copiedTriples = copyModel(inDataset.getDefaultModel(), outDataset.getDefaultModel(),
+                defaultTombstoneGraph, outDb, copiedTriples, defaultTombstoneUri);
+        defaultTombstoneGraph.removeAll();
 
         Iterator<String> graphNames = inDataset.listNames();
         while (graphNames.hasNext()) {
             String graphName = graphNames.next();
-            copiedTriples = copyModel(inDataset.getNamedModel(graphName), outDataset.getNamedModel(graphName), tombstoneGraph, outDb, copiedTriples);
+
+            String namedTombstoneUri = graphName + "-tombstones";
+            Model namedTombstoneGraph = outDb.getNamedModel(namedTombstoneUri);
+
+            copiedTriples = copyModel(inDataset.getNamedModel(graphName), outDataset.getNamedModel(graphName),
+                    namedTombstoneGraph, outDb, copiedTriples, namedTombstoneUri);
+
+            namedTombstoneGraph.removeAll();
         }
 
         Logger.info("finished copying. Total copied triples: " + copiedTriples);
-        tombstoneGraph.removeAll();
-        Logger.info("temporary tombstone graph cleared.");
+        Logger.info("temporary tombstone graphs cleared.");
     }
 
-    private long copyModel(Model inGraph, Model outGraph, Model tombstoneGraph, DatasetManager outDb, long copiedTriples) {
+    private long copyModel(Model inGraph, Model outGraph, Model tombstoneGraph, DatasetManager outDb, long copiedTriples, String tombstoneUri) {
         StmtIterator it = inGraph.listStatements();
         try {
             while (it.hasNext()) {
@@ -49,7 +59,7 @@ public class StandardTriplesMigrator {
                     if (outGraph == null) {
                         outGraph = outDb.getDefaultModel();
                     }
-                    tombstoneGraph = outDb.getNamedModel("urn:cr2tt:temp:tombstones");
+                    tombstoneGraph = outDb.getNamedModel(tombstoneUri);
                 }
             }
         } finally {

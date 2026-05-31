@@ -1,5 +1,6 @@
 package pl.uwb.cr2tt.core;
 
+import org.apache.jena.query.Dataset;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
@@ -19,6 +20,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -54,42 +56,37 @@ public class ConversionEngine {
             inDb.beginRead();
             outDb.beginWrite();
 
-            Model inGraph = inDb.getDefaultModel();
-            Model outGraph = outDb.getDefaultModel();
+            Dataset inDataset = inDb.getDataset();
+            Dataset outDataset = outDb.getDataset();
 
             Logger.info("copying namespace prefixes.");
-            outGraph.setNsPrefixes(inGraph.getNsPrefixMap());
+            outDataset.getDefaultModel().setNsPrefixes(inDataset.getDefaultModel().getNsPrefixMap());
 
-            //ClusterExtractor extractor = new ClusterExtractor();
-            ClusterExtractorNew extractor = new ClusterExtractorNew();
-            ClusterValidator validator = new ClusterValidator();
-            ClusterConverter converter = new ClusterConverter();
             StandardTriplesMigrator migrator = new StandardTriplesMigrator();
 
-            Model tombstoneGraph = outDb.getNamedModel("urn:cr2tt:temp:tombstones");
             AtomicInteger validCounter = new AtomicInteger(0);
             AtomicInteger invalidCounter = new AtomicInteger(0);
             Map<String, Integer> errorSummary = new ConcurrentHashMap<>();
 
-            Map<String, StatementTerm> resolvedTripleTerms = new HashMap<>();
-
             Logger.info("starting extraction, validation and conversion process.");
 
-            extractor.extractAndProcess(inGraph, cluster -> {
-                String errorReason = validator.validateCluster(cluster, mode, baseTriplePolicy, allowAssertingConversion);
+            Logger.info("processing default graph.");
+            Model defaultTombstone = outDb.getNamedModel("urn:cr2tt:temp:tombstones:default");
+            processGraph(inDataset.getDefaultModel(), outDataset.getDefaultModel(), mode, baseTriplePolicy,
+                    allowAssertingConversion, validateOnly, validCounter, invalidCounter, errorSummary, defaultTombstone);
 
-                if (errorReason == null) {
-                    validCounter.incrementAndGet();
+            Iterator<String> graphNames = inDataset.listNames();
+            while (graphNames.hasNext()) {
+                String graphName = graphNames.next();
+                Logger.info("processing named graph: " + graphName);
 
-                    if (!validateOnly) {
-                        converter.convertCluster(cluster, mode, outGraph, resolvedTripleTerms);
-                        markClusterAsProcessed(cluster, tombstoneGraph);
-                    }
-                } else {
-                    invalidCounter.incrementAndGet();
-                    errorSummary.merge(errorReason, 1, Integer::sum);
-                }
-            });
+                String namedTombstoneUri = graphName + "-tombstones";
+                Model namedTombstone = outDb.getNamedModel(namedTombstoneUri);
+
+                processGraph(inDataset.getNamedModel(graphName), outDataset.getNamedModel(graphName),
+                        mode, baseTriplePolicy, allowAssertingConversion, validateOnly, validCounter,
+                        invalidCounter, errorSummary, namedTombstone);
+            }
 
             Logger.info("extraction, validation and conversion process finished.");
 
@@ -110,9 +107,7 @@ public class ConversionEngine {
 
                 outDb.beginWrite();
 
-                Model newTombstoneGraph = outDb.getNamedModel("urn:cr2tt:temp:tombstones");
-
-                migrator.migrate(inDb, outDb, newTombstoneGraph);
+                migrator.migrate(inDb, outDb);
 
                 DatasetExporter exporter = new DatasetExporter();
                 exporter.exportData(outDb.getDataset(), inputFile, outputFile);
@@ -147,6 +142,32 @@ public class ConversionEngine {
             Instant endTime = Instant.now();
             Logger.info("total execution time: " + TimeUtils.getExecutionTimeFormatted(startTime, endTime));
         }
+    }
+
+    private void processGraph(Model inGraph, Model outGraph, ConversionMode mode, BaseTriplePolicy baseTriplePolicy,
+                              boolean allowAssertingConversion, boolean validateOnly,
+                              AtomicInteger validCounter, AtomicInteger invalidCounter, Map<String, Integer> errorSummary,
+                              Model tombstoneGraph) {
+        ClusterExtractorNew extractor = new ClusterExtractorNew();
+        ClusterValidator validator = new ClusterValidator();
+        ClusterConverter converter = new ClusterConverter();
+        Map<String, StatementTerm> resolvedTripleTerms = new HashMap<>();
+
+        extractor.extractAndProcess(inGraph, cluster -> {
+            String errorReason = validator.validateCluster(cluster, mode, baseTriplePolicy, allowAssertingConversion);
+
+            if (errorReason == null) {
+                validCounter.incrementAndGet();
+
+                if (!validateOnly) {
+                    converter.convertCluster(cluster, mode, outGraph, resolvedTripleTerms);
+                    markClusterAsProcessed(cluster, tombstoneGraph);
+                }
+            } else {
+                invalidCounter.incrementAndGet();
+                errorSummary.merge(errorReason, 1, Integer::sum);
+            }
+        });
     }
 
     private void markClusterAsProcessed(Cluster cluster, Model tombstoneGraph) {

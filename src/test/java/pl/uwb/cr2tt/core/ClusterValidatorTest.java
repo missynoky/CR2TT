@@ -1,5 +1,6 @@
 package pl.uwb.cr2tt.core;
 
+import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.rdf.model.Statement;
@@ -20,10 +21,14 @@ class ClusterValidatorTest {
 
     private ClusterValidator validator;
 
+    private final Resource subject = ResourceFactory.createResource("http://example.org/s");
+    private final Property predicate = ResourceFactory.createProperty("http://example.org/p");
+    private final Resource object = ResourceFactory.createResource("http://example.org/o");
+
     private Set<Statement> createMetadata() {
         Statement stmt = ResourceFactory.createStatement(
                 ResourceFactory.createResource(),
-                ResourceFactory.createProperty("http://example.org/p"),
+                ResourceFactory.createProperty("http://example.org/meta_p"),
                 ResourceFactory.createPlainLiteral("value")
         );
         return Collections.singleton(stmt);
@@ -44,7 +49,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource();
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     Collections.emptySet(),
                     2, true, true, false
             );
@@ -64,7 +69,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource();
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     Collections.emptySet(),
                     5, true, true, false
             );
@@ -84,7 +89,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource();
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     Collections.emptySet(),
                     2, true, true, false
             );
@@ -108,7 +113,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource();
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     Collections.emptySet(),
                     1, false, true, false
             );
@@ -128,7 +133,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource();
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     Collections.emptySet(),
                     1, true, true, false
             );
@@ -148,7 +153,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource();
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     Collections.emptySet(),
                     1, true, true, false
             );
@@ -168,7 +173,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource();
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     Collections.emptySet(),
                     1, false, true, false
             );
@@ -192,7 +197,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource();
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     Collections.emptySet(),
                     1, false, true, false
             );
@@ -212,7 +217,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource();
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     Collections.emptySet(),
                     1, false, true, false
             );
@@ -232,7 +237,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource();
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     Collections.emptySet(),
                     1, true, true, false
             );
@@ -257,7 +262,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource("http://example.org/node");
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     createMetadata(),
                     1, true, true, false
             );
@@ -277,7 +282,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource();
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     createMetadata(),
                     1, true, false, false
             );
@@ -297,7 +302,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource();
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     Collections.emptySet(),
                     1, true, true, false
             );
@@ -317,7 +322,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource();
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     createMetadata(),
                     1, true, true, false
             );
@@ -341,7 +346,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource();
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     Collections.emptySet(),
                     1, true, true, false
             );
@@ -361,7 +366,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource();
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     createMetadata(),
                     1, true, true, false
             );
@@ -385,7 +390,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource("http://example.org/explicitNode");
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     Collections.emptySet(),
                     1, false, true, false
             );
@@ -405,7 +410,7 @@ class ClusterValidatorTest {
             Resource testNode = ResourceFactory.createResource();
 
             Cluster cluster = new Cluster(
-                    testNode, null, null, null,
+                    testNode, subject, predicate, object,
                     createMetadata(),
                     1, false, true, false
             );

@@ -13,6 +13,11 @@ public class ClusterConverter {
         Property p = cluster.getPredicateNode();
         RDFNode o = cluster.getObjectNode();
 
+        String sId = getNodeId(s);
+        if (resolvedTerms.containsKey(sId)) {
+            s = resolvedTerms.get(sId).asResource();
+        }
+
         String oId = getNodeId(o);
         if (resolvedTerms.containsKey(oId)) {
             o = resolvedTerms.get(oId);

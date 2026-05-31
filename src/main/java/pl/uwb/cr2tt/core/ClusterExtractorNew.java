@@ -94,6 +94,7 @@ public class ClusterExtractorNew {
         if (s == null || p == null || o == null) {
             return;
         }
+
         if (!isValidSubject(s) || !isValidPredicate(p) || !isValidObject(o)) {
             return;
         }
