@@ -61,6 +61,8 @@ public class ConversionEngine {
             Dataset inDataset = inDb.getDataset();
             Dataset outDataset = outDb.getDataset();
 
+            validateOutputFormatForNamedGraphs(inDataset, inputFile, outputFile);
+
             Logger.info("copying namespace prefixes.");
             outDataset.getDefaultModel().setNsPrefixes(inDataset.getDefaultModel().getNsPrefixMap());
 
@@ -135,7 +137,7 @@ public class ConversionEngine {
 
         } catch (Exception ex) {
             outDb.abort();
-            throw new RuntimeException("unexpected error during processing: " + ex.getMessage(), ex);
+            throw new RuntimeException("Unexpected error during processing: " + ex.getMessage(), ex);
 
         } finally {
             inDb.close();
@@ -147,6 +149,18 @@ public class ConversionEngine {
 
             Instant endTime = Instant.now();
             Logger.info("total execution time: " + TimeUtils.getExecutionTimeFormatted(startTime, endTime));
+        }
+    }
+
+    private void validateOutputFormatForNamedGraphs(Dataset inDataset, File inputFile, File outputFile) {
+        File fileToCheck = (outputFile != null) ? outputFile : inputFile;
+        String fileName = (fileToCheck != null) ? fileToCheck.getName().toLowerCase() : "";
+        boolean isTrigOrNq = fileName.endsWith(".trig") || fileName.endsWith(".nq");
+
+        if (inDataset.listNames().hasNext() && !isTrigOrNq) {
+            throw new RuntimeException("The input dataset contains named graphs, " +
+                    "but the requested output format only supports a single default graph. " +
+                    "Please use .trig or .nq extension for the output file.");
         }
     }
 
@@ -168,7 +182,7 @@ public class ConversionEngine {
         ClusterConverter converter = new ClusterConverter();
         Map<String, StatementTerm> resolvedTripleTerms = new HashMap<>();
 
-        extractor.extractAndProcess(inGraph, cluster -> {
+        int cyclicCount = extractor.extractAndProcess(inGraph, cluster -> {
             String errorReason = validator.validateCluster(cluster, mode, baseTriplePolicy, allowAssertingConversion);
 
             if (errorReason == null) {
@@ -183,6 +197,11 @@ public class ConversionEngine {
                 errorSummary.merge(errorReason, 1, Integer::sum);
             }
         });
+
+        if (cyclicCount > 0) {
+            invalidCounter.addAndGet(cyclicCount);
+            errorSummary.merge("Cyclic reification detected ", cyclicCount, Integer::sum);
+        }
     }
 
     private void markClusterAsProcessed(Cluster cluster, Model tombstoneGraph) {

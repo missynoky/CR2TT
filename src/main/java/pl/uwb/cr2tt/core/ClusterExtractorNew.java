@@ -15,7 +15,7 @@ public class ClusterExtractorNew {
 
     private long validClusterCount = 0;
 
-    public void extractAndProcess(Model inGraph, Consumer<Cluster> clusterProcessor) {
+    public int extractAndProcess(Model inGraph, Consumer<Cluster> clusterProcessor) {
         Logger.info("starting extraction of clusters.");
 
         long rowCount = 0;
@@ -47,10 +47,13 @@ public class ClusterExtractorNew {
 
         Logger.info("finished reading stream. Valid extracted clusters: " + validClusterCount);
 
+        int cyclicCount = 0;
         if (!waitingRoom.isEmpty()) {
-            int cyclicCount = waitingRoom.values().stream().mapToInt(List::size).sum();
+            cyclicCount = waitingRoom.values().stream().mapToInt(List::size).sum();
             Logger.error("cyclic reification omitted due to loop detection. Skipped clusters: " + cyclicCount);
         }
+
+        return cyclicCount;
     }
 
     private void extractAndValidateSingleCluster(Resource cNode, Model inGraph, Consumer<Cluster> clusterProcessor) {
@@ -121,8 +124,8 @@ public class ClusterExtractorNew {
         Resource s = cluster.getSubjectNode();
         RDFNode o = cluster.getObjectNode();
 
-        boolean isSCluster = inGraph.contains(s, RDF.subject, (RDFNode) null);
-        boolean isOCluster = o.isResource() && inGraph.contains(o.asResource(), RDF.subject, (RDFNode) null);
+        boolean isSCluster = isValidCluster(inGraph, s);
+        boolean isOCluster = o.isResource() && isValidCluster(inGraph, o.asResource());
 
         String sId = getNodeId(s);
         String oId = getNodeId(o);
@@ -154,6 +157,43 @@ public class ClusterExtractorNew {
                 evaluateDependencyAndProcess(parent, inGraph, clusterProcessor);
             }
         }
+    }
+
+    private boolean isValidCluster(Model inGraph, Resource cNode) {
+        if (cNode == null || !inGraph.contains(cNode, RDF.subject, (RDFNode) null)) return false;
+
+        int sCount = 0, pCount = 0, oCount = 0;
+        Resource s = null; Property p = null; RDFNode o = null;
+
+        StmtIterator props = inGraph.listStatements(cNode, null, (RDFNode) null);
+        try {
+            while (props.hasNext()) {
+                Statement pStmt = props.next();
+                Property pred = pStmt.getPredicate();
+                RDFNode obj = pStmt.getObject();
+
+                if (pred.equals(RDF.subject)) {
+                    sCount++;
+                    if (obj.isResource()) s = obj.asResource();
+                } else if (pred.equals(RDF.predicate)) {
+                    pCount++;
+                    if (obj.isResource() && obj.asResource().isURIResource()) {
+                        p = ResourceFactory.createProperty(obj.asResource().getURI());
+                    }
+                } else if (pred.equals(RDF.object)) {
+                    oCount++;
+                    o = obj;
+                }
+            }
+        } finally {
+            props.close();
+        }
+
+        if (sCount != 1 || pCount != 1 || oCount != 1) return false;
+        if (s == null || p == null || o == null) return false;
+        if (!isValidSubject(s) || !isValidPredicate(p) || !isValidObject(o)) return false;
+
+        return true;
     }
 
     private int calculateNSpo(Model inGraph, Resource currentCluster, Resource s, Property p, RDFNode o) {

@@ -49,9 +49,9 @@ public class CliValidator {
                     return false;
                 }
 
-                Logger.info("Output destination is a file: " + outputFile.getAbsolutePath());
+                Logger.info("output destination is a file: " + outputFile.getAbsolutePath());
             } else {
-                Logger.info("Output destination is standard output.");
+                Logger.info("output destination is standard output.");
             }
         }
 

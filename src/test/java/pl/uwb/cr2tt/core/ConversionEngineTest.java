@@ -116,4 +116,39 @@ public class ConversionEngineTest {
         assertFalse(isValidResult, "Engine should return false.");
         assertFalse(context.getOutputFile().exists(), "Output file should not be created.");
     }
+
+    @Test
+    public void shouldThrowExceptionWhenDatasetHasNamedGraphsButOutputFormatIsInvalid() {
+        File inputFile = new File(EXAMPLES_DIR + "input_named.trig");
+        File outputFile = tempDir.resolve("output.ttl").toFile();
+
+        ConversionContext context = createContext(inputFile, outputFile, ConversionMode.REIFIED_TRIPLE_EXPANDED, false);
+        ConversionEngine engine = new ConversionEngine(context);
+
+        RuntimeException exception = assertThrows(RuntimeException.class, engine::run);
+
+        assertTrue(exception.getMessage().contains("The input dataset contains named graphs"));
+    }
+
+    @Test
+    public void shouldPassValidationWhenDatasetHasNamedGraphsAndOutputFormatIsNq() {
+        File inputFile = new File(EXAMPLES_DIR + "input_named.trig");
+        File outputFile = tempDir.resolve("output.nq").toFile();
+
+        ConversionContext context = createContext(inputFile, outputFile, ConversionMode.REIFIED_TRIPLE_EXPANDED, false);
+        ConversionEngine engine = new ConversionEngine(context);
+
+        assertDoesNotThrow(engine::run, "Engine should pass validation when output format is .nq");
+    }
+
+    @Test
+    public void shouldPassValidationWhenDatasetHasNoNamedGraphsAndOutputFormatIsTtl() {
+        File inputFile = new File(EXAMPLES_DIR + "input_explicit.ttl");
+        File outputFile = tempDir.resolve("output_explicit.ttl").toFile();
+
+        ConversionContext context = createContext(inputFile, outputFile, ConversionMode.REIFIED_TRIPLE, false);
+        ConversionEngine engine = new ConversionEngine(context);
+
+        assertDoesNotThrow(engine::run, "Engine should pass format validation for .ttl if no named graphs exist");
+    }
 }

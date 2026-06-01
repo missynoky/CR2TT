@@ -18,16 +18,18 @@ public class ClusterExtractorNewTest {
     private Model inGraph;
     private ClusterExtractorNew extractor;
     private List<Cluster> extractedClusters;
+    private int returnedCyclicCount;
 
     @BeforeEach
     public void setUp() {
         inGraph = ModelFactory.createDefaultModel();
         extractor = new ClusterExtractorNew();
         extractedClusters = new ArrayList<>();
+        returnedCyclicCount = 0;
     }
 
     private void runExtraction() {
-        extractor.extractAndProcess(inGraph, cluster -> extractedClusters.add(cluster));
+        returnedCyclicCount = extractor.extractAndProcess(inGraph, cluster -> extractedClusters.add(cluster));
     }
 
     @Test
@@ -153,6 +155,8 @@ public class ClusterExtractorNewTest {
         runExtraction();
 
         assertEquals(2, extractedClusters.size());
+        assertEquals(0, returnedCyclicCount);
+
         Cluster childCluster = extractedClusters.stream()
                 .filter(c -> c.getClusterNode().getURI().equals(ex + "st1"))
                 .findFirst().orElseThrow();
@@ -176,5 +180,6 @@ public class ClusterExtractorNewTest {
         runExtraction();
 
         assertEquals(0, extractedClusters.size());
+        assertEquals(2, returnedCyclicCount);
     }
 }
