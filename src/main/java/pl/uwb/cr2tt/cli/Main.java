@@ -102,7 +102,7 @@ public class Main implements Callable<Integer> {
             boolean isValidResult = engine.run();
 
             if (context.isValidateOnly() && !isValidResult) {
-                Logger.error("Validation errors detected.");
+                Logger.error("validation errors detected.");
                 return -1;
             }
 

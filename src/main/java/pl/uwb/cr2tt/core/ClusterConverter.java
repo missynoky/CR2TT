@@ -9,7 +9,7 @@ import java.util.Map;
 
 public class ClusterConverter {
     public void convertCluster(Cluster cluster, ConversionMode mode, Model outGraph,
-                               Map<String, StatementTerm> resolvedTerms, boolean keepStatementType) {
+                               Map<String, Resource> resolvedTerms, boolean keepStatementType) {
         Resource r = cluster.getClusterNode();
         Resource s = cluster.getSubjectNode();
         Property p = cluster.getPredicateNode();
@@ -17,7 +17,7 @@ public class ClusterConverter {
 
         String sId = getNodeId(s);
         if (resolvedTerms.containsKey(sId)) {
-            s = resolvedTerms.get(sId).asResource();
+            s = resolvedTerms.get(sId);
         }
 
         String oId = getNodeId(o);
@@ -26,15 +26,11 @@ public class ClusterConverter {
         }
 
         Statement baseTriple = outGraph.createStatement(s, p, o);
-
-        if (cluster.isNestedTarget()) {
-            StatementTerm tripleTerm = outGraph.createStatementTerm(baseTriple);
-            resolvedTerms.put(getNodeId(r), tripleTerm);
-        }
+        Resource activeReifier = null;
 
         switch (mode) {
             case REIFIED_TRIPLE_EXPANDED:
-                outGraph.createReifier(r, baseTriple);
+                activeReifier = outGraph.createReifier(r, baseTriple);
                 addStatementType(outGraph, r, keepStatementType);
 
                 for (Statement metaStmt : cluster.getMetadata()) {
@@ -43,16 +39,16 @@ public class ClusterConverter {
                 break;
 
             case REIFIED_TRIPLE:
-                Resource anonymousReifier = outGraph.createReifier(baseTriple);
-                addStatementType(outGraph, anonymousReifier, keepStatementType);
+                activeReifier = outGraph.createReifier(baseTriple);
+                addStatementType(outGraph, activeReifier, keepStatementType);
 
                 for (Statement metaStmt : cluster.getMetadata()) {
-                    outGraph.add(anonymousReifier, metaStmt.getPredicate(), metaStmt.getObject());
+                    outGraph.add(activeReifier, metaStmt.getPredicate(), metaStmt.getObject());
                 }
                 break;
 
             case REIFIED_TRIPLE_EXPLICIT:
-                outGraph.createReifier(r, baseTriple);
+                activeReifier = outGraph.createReifier(r, baseTriple);
                 addStatementType(outGraph, r, keepStatementType);
 
                 if (!cluster.getMetadata().isEmpty()) {
@@ -64,17 +60,17 @@ public class ClusterConverter {
 
             case ANNOTATED_TRIPLE:
                 outGraph.add(baseTriple);
-                Resource anonReifier = outGraph.createReifier(baseTriple);
-                addStatementType(outGraph, anonReifier, keepStatementType);
+                activeReifier = outGraph.createReifier(baseTriple);
+                addStatementType(outGraph, activeReifier, keepStatementType);
 
                 for (Statement metaStmt : cluster.getMetadata()) {
-                    outGraph.add(anonReifier, metaStmt.getPredicate(), metaStmt.getObject());
+                    outGraph.add(activeReifier, metaStmt.getPredicate(), metaStmt.getObject());
                 }
                 break;
 
             case ANNOTATED_TRIPLE_EXPLICIT:
                 outGraph.add(baseTriple);
-                outGraph.createReifier(r, baseTriple);
+                activeReifier = outGraph.createReifier(r, baseTriple);
                 addStatementType(outGraph, r, keepStatementType);
 
                 for (Statement metaStmt : cluster.getMetadata()) {
@@ -84,7 +80,7 @@ public class ClusterConverter {
 
             case ANNOTATED_TRIPLE_EXPANDED:
                 outGraph.add(baseTriple);
-                outGraph.createReifier(r, baseTriple);
+                activeReifier = outGraph.createReifier(r, baseTriple);
                 addStatementType(outGraph, r, keepStatementType);
 
                 if (!cluster.getMetadata().isEmpty()) {
@@ -96,6 +92,10 @@ public class ClusterConverter {
 
             default:
                 throw new IllegalArgumentException("Unsupported conversion mode: " + mode);
+        }
+
+        if (cluster.isNestedTarget() && activeReifier != null) {
+            resolvedTerms.put(getNodeId(r), activeReifier);
         }
     }
 

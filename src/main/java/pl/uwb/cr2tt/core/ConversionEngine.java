@@ -180,7 +180,7 @@ public class ConversionEngine {
         ClusterExtractorNew extractor = new ClusterExtractorNew();
         ClusterValidator validator = new ClusterValidator();
         ClusterConverter converter = new ClusterConverter();
-        Map<String, StatementTerm> resolvedTripleTerms = new HashMap<>();
+        Map<String, Resource> resolvedTripleTerms = new HashMap<>();
 
         int cyclicCount = extractor.extractAndProcess(inGraph, cluster -> {
             String errorReason = validator.validateCluster(cluster, mode, baseTriplePolicy, allowAssertingConversion);

@@ -2,7 +2,7 @@ package pl.uwb.cr2tt.core;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.StatementTerm;
+import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.riot.RDFDataMgr;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,7 +21,7 @@ class ClusterConverterTest {
 
         ClusterExtractorNew extractor = new ClusterExtractorNew();
         ClusterConverter converter = new ClusterConverter();
-        Map<String, StatementTerm> resolvedTerms = new HashMap<>();
+        Map<String, Resource> resolvedTerms = new HashMap<>();
 
         extractor.extractAndProcess(inModel, cluster -> {
             converter.convertCluster(cluster, mode, actualModel, resolvedTerms, keepStatementType);
@@ -91,6 +91,31 @@ class ClusterConverterTest {
         @Test
         void shouldConvertReifiedTripleWithStatementType() {
             verifyConversion(INPUT_PATH, EXPECTED_DIR + "expected_reified_triple_with_type.ttl", ConversionMode.REIFIED_TRIPLE, true);
+        }
+    }
+
+    @Nested
+    class NestedReificationTests {
+
+        private final String INPUT_PATH = "src/test/resources/examples/classic/input_nested_explicit.ttl";
+        private final String EXPECTED_DIR = "src/test/resources/examples/expected/";
+
+        @Test
+        void shouldConvertNestedReifiedTripleExpanded() {
+            verifyConversion(
+                    INPUT_PATH,
+                    EXPECTED_DIR + "expected_nested_reified_expanded.ttl",
+                    ConversionMode.REIFIED_TRIPLE_EXPANDED
+            );
+        }
+
+        @Test
+        void shouldConvertNestedAnnotatedTripleExpanded() {
+            verifyConversion(
+                    INPUT_PATH,
+                    EXPECTED_DIR + "expected_nested_annotated_expanded.ttl",
+                    ConversionMode.ANNOTATED_TRIPLE_EXPANDED
+            );
         }
     }
 }
