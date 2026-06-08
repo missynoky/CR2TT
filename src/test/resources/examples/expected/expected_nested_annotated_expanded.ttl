@@ -1,9 +1,8 @@
-@prefix ex: <http://example.org/> .
+@prefix ex:  <http://example.org/> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-ex:ProteinA ex:interactsWith ex:ProteinB .
-<< ex:ProteinA ex:interactsWith ex:ProteinB ~ ex:stmt1 >> ex:source "UniProt" .
+ex:Bob ex:knows ex:Alice .
+<< ex:Bob ex:knows ex:Alice ~ ex:stmt1 >> ex:certainty "0.9" .
 
-ex:stmt1 ex:certaintyLevel "high" .
-<< ex:stmt1 ex:certaintyLevel "high" ~ ex:stmt2 >> ex:verifiedBy "System" .
+ex:System ex:validates <<( ex:Bob ex:knows ex:Alice )>> .
+<< ex:System ex:validates <<( ex:Bob ex:knows ex:Alice )>> ~ ex:stmt2 >> ex:source "LogA" .

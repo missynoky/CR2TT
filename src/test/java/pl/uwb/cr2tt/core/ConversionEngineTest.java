@@ -151,4 +151,40 @@ public class ConversionEngineTest {
 
         assertDoesNotThrow(engine::run, "Engine should pass format validation for .ttl if no named graphs exist");
     }
+
+    @Test
+    public void shouldProperlyConvertNestedReificationAndPreserveDomainData() {
+        File inputFile = new File(EXAMPLES_DIR + "input_engine_nested_explicit.ttl");
+        File expectedFile = new File("src/test/resources/examples/expected/expected_nested.ttl");
+        File outputFile = tempDir.resolve("output_nested_test.ttl").toFile();
+
+        ConversionContext context = new ConversionContext(
+                inputFile,
+                outputFile,
+                ConversionMode.REIFIED_TRIPLE_EXPANDED,
+                BaseTriplePolicy.PRESERVE,
+                false,
+                false,
+                false
+        );
+
+        ConversionEngine engine = new ConversionEngine(context);
+        engine.run();
+
+        Model actualModel = RDFDataMgr.loadModel(outputFile.getAbsolutePath());
+        Model expectedModel = RDFDataMgr.loadModel(expectedFile.getAbsolutePath());
+
+        // Opcjonalne drukowanie do konsoli (jeśli test nie przejdzie, od razu widać dlaczego)
+        if (actualModel.isIsomorphicWith(expectedModel)) {
+            actualModel.setNsPrefixes(expectedModel.getNsPrefixMap());
+            System.out.println("Actual model");
+            RDFDataMgr.write(System.out, actualModel, org.apache.jena.riot.Lang.TURTLE);
+
+            System.out.println("\nExpected model");
+            RDFDataMgr.write(System.out, expectedModel, org.apache.jena.riot.Lang.TURTLE);
+        }
+
+        assertTrue(actualModel.isIsomorphicWith(expectedModel),
+                "Graphs are not isomorphic.");
+    }
 }

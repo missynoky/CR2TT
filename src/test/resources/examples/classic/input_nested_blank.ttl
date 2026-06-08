@@ -1,14 +1,14 @@
 @prefix ex:  <http://example.org/> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 
-ex:stmt1 a rdf:Statement ;
+_:b1 a rdf:Statement ;
     rdf:subject ex:Bob ;
     rdf:predicate ex:knows ;
     rdf:object ex:Alice ;
     ex:certainty "0.9" .
 
-ex:stmt2 a rdf:Statement ;
+_:b2 a rdf:Statement ;
     rdf:subject ex:System ;
     rdf:predicate ex:validates ;
-    rdf:object ex:stmt1 ;
+    rdf:object _:b1 ;
     ex:source "LogA" .

@@ -1,5 +1,8 @@
 package pl.uwb.cr2tt.core;
 
+import org.apache.jena.graph.Node;
+import org.apache.jena.graph.NodeFactory;
+import org.apache.jena.graph.Triple;
 import org.apache.jena.rdf.model.*;
 import org.apache.jena.vocabulary.RDF;
 import pl.uwb.cr2tt.model.Cluster;
@@ -15,17 +18,29 @@ public class ClusterConverter {
         Property p = cluster.getPredicateNode();
         RDFNode o = cluster.getObjectNode();
 
+        String rId = getNodeId(r);
+
         String sId = getNodeId(s);
         if (resolvedTerms.containsKey(sId)) {
             s = resolvedTerms.get(sId);
         }
 
         String oId = getNodeId(o);
-        if (resolvedTerms.containsKey(oId)) {
+        if (resolvedTerms.containsKey("tt_" + oId)) {
+            o = resolvedTerms.get("tt_" + oId);
+        } else if (resolvedTerms.containsKey(oId)) {
             o = resolvedTerms.get(oId);
         }
 
         Statement baseTriple = outGraph.createStatement(s, p, o);
+
+        if (cluster.isNestedTarget()) {
+            Triple rawTriple = baseTriple.asTriple();
+            Node tripleNode = NodeFactory.createTripleTerm(rawTriple);
+            Resource tripleTerm = outGraph.asRDFNode(tripleNode).asResource();
+
+            resolvedTerms.put("tt_" + rId, tripleTerm);
+        }
         Resource activeReifier = null;
 
         switch (mode) {
@@ -94,9 +109,7 @@ public class ClusterConverter {
                 throw new IllegalArgumentException("Unsupported conversion mode: " + mode);
         }
 
-        if (cluster.isNestedTarget() && activeReifier != null) {
-            resolvedTerms.put(getNodeId(r), activeReifier);
-        }
+        resolvedTerms.put(rId, activeReifier);
     }
 
     private void addStatementType(Model outGraph, Resource reifierNode, boolean keepStatementType) {

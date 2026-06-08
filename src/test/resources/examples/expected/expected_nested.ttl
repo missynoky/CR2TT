@@ -1,0 +1,25 @@
+@prefix ex: <http://example.org/data/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:jennifer_johnson_15 a foaf:Person ;
+    foaf:name "Jennifer Johnson" .
+
+ex:kelsey_robles_88 a foaf:Person ;
+    foaf:name "Kelsey Robles" .
+
+ex:stmt_kelsey_robles_88_jennifer_johnson_15_312ad3e1 rdf:reifies <<( ex:kelsey_robles_88 ex:dislikes ex:jennifer_johnson_15 )>> ;
+    ex:certainty "0.76"^^xsd:float .
+
+ex:nested_stmt_53bc659a rdf:reifies <<( ex:system_4 ex:reports <<( ex:kelsey_robles_88 ex:dislikes ex:jennifer_johnson_15 )>> )>> ;
+    ex:certainty "0.69"^^xsd:float .
+
+
+ex:stmt_kelsey_robles_88_jennifer_johnson_15_1ed8c412 rdf:reifies <<( ex:kelsey_robles_88 ex:dislikes ex:jennifer_johnson_15 )>> ;
+    ex:certainty "0.64"^^xsd:float .
+
+ex:nested_stmt_7038a419 rdf:reifies <<( ex:system_5 ex:validates <<( ex:kelsey_robles_88 ex:dislikes ex:jennifer_johnson_15 )>> )>> ;
+    ex:certainty "0.78"^^xsd:float .
+
+ex:system_5 ex:validates ex:stmt_kelsey_robles_88_jennifer_johnson_15_1ed8c412 .

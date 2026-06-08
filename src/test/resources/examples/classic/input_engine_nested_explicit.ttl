@@ -1,0 +1,37 @@
+@prefix ex: <http://example.org/data/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:nested_stmt_53bc659a a rdf:Statement ;
+    ex:certainty "0.69"^^xsd:float ;
+    rdf:object ex:stmt_kelsey_robles_88_jennifer_johnson_15_312ad3e1 ;
+    rdf:predicate ex:reports ;
+    rdf:subject ex:system_4 .
+
+ex:nested_stmt_7038a419 a rdf:Statement ;
+    ex:certainty "0.78"^^xsd:float ;
+    rdf:object ex:stmt_kelsey_robles_88_jennifer_johnson_15_1ed8c412 ;
+    rdf:predicate ex:validates ;
+    rdf:subject ex:system_5 .
+
+ex:stmt_kelsey_robles_88_jennifer_johnson_15_312ad3e1 a rdf:Statement ;
+    ex:certainty "0.76"^^xsd:float ;
+    rdf:object ex:jennifer_johnson_15 ;
+    rdf:predicate ex:dislikes ;
+    rdf:subject ex:kelsey_robles_88 .
+
+ex:system_5 ex:validates ex:stmt_kelsey_robles_88_jennifer_johnson_15_1ed8c412 .
+
+ex:jennifer_johnson_15 a foaf:Person ;
+    foaf:name "Jennifer Johnson" .
+
+ex:kelsey_robles_88 a foaf:Person ;
+    foaf:name "Kelsey Robles" .
+
+ex:stmt_kelsey_robles_88_jennifer_johnson_15_1ed8c412 a rdf:Statement ;
+    ex:certainty "0.64"^^xsd:float ;
+    rdf:object ex:jennifer_johnson_15 ;
+    rdf:predicate ex:dislikes ;
+    rdf:subject ex:kelsey_robles_88 .
+
