@@ -59,7 +59,7 @@ public class ClusterExtractorNew {
     private void extractAndValidateSingleCluster(Resource cNode, Model inGraph, Consumer<Cluster> clusterProcessor) {
         StmtIterator props = inGraph.listStatements(cNode, null, (RDFNode) null);
 
-        int sCount = 0, pCount = 0, oCount = 0;
+        int sCount = 0, pCount = 0, oCount = 0, stmtCount = 0;
         Resource s = null;
         Property p = null;
         RDFNode o = null;
@@ -82,7 +82,9 @@ public class ClusterExtractorNew {
                 } else if (pred.equals(RDF.object)) {
                     oCount++;
                     o = obj;
-                } else if (!(pred.equals(RDF.type) && obj.equals(RDF.Statement))) {
+                } else if (pred.equals(RDF.type) && obj.equals(RDF.Statement)) {
+                    stmtCount++;
+                } else {
                     metadata.add(pStmt);
                 }
             }
@@ -90,7 +92,7 @@ public class ClusterExtractorNew {
             props.close();
         }
 
-        if (sCount != 1 || pCount != 1 || oCount != 1) {
+        if (sCount != 1 || pCount != 1 || oCount != 1 || stmtCount > 1) {
             return;
         }
 
@@ -162,7 +164,7 @@ public class ClusterExtractorNew {
     private boolean isValidCluster(Model inGraph, Resource cNode) {
         if (cNode == null || !inGraph.contains(cNode, RDF.subject, (RDFNode) null)) return false;
 
-        int sCount = 0, pCount = 0, oCount = 0;
+        int sCount = 0, pCount = 0, oCount = 0, stmtCount = 0;
         Resource s = null; Property p = null; RDFNode o = null;
 
         StmtIterator props = inGraph.listStatements(cNode, null, (RDFNode) null);
@@ -183,13 +185,15 @@ public class ClusterExtractorNew {
                 } else if (pred.equals(RDF.object)) {
                     oCount++;
                     o = obj;
+                } else if (pred.equals(RDF.type) && obj.equals(RDF.Statement)) {
+                    stmtCount++;
                 }
             }
         } finally {
             props.close();
         }
 
-        if (sCount != 1 || pCount != 1 || oCount != 1) return false;
+        if (sCount != 1 || pCount != 1 || oCount != 1 || stmtCount > 1) return false;
         if (s == null || p == null || o == null) return false;
         if (!isValidSubject(s) || !isValidPredicate(p) || !isValidObject(o)) return false;
 
