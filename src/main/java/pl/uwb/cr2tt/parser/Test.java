@@ -18,7 +18,7 @@ public class Test {
         System.out.println("Start tests. File: " + new File(inputPath).getName());
 
         for (int i = 1; i <= iterations; i++) {
-            System.out.println("\n--- Iteration: " + i + " ---");
+            System.out.println("Iteration: " + i);
             File outFile = new File(outputPath);
 
             try {
