@@ -28,7 +28,7 @@ public class ClusterExtractorNew {
                 Resource cNode = stmt.getSubject();
 
                 rowCount++;
-                if (rowCount % 100000 == 0) {
+                if (rowCount % 50000 == 0) {
                     Logger.info("scanned potential cluster nodes: " + rowCount);
                 }
 

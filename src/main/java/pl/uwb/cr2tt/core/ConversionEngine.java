@@ -24,6 +24,10 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Locale;
 
 public class ConversionEngine {
     private final ConversionContext context;
@@ -51,8 +55,13 @@ public class ConversionEngine {
         DatasetManager outDb = new DatasetManager(outDbDir);
 
         try {
+            long startImport = System.nanoTime();
+
             DatasetImporter importer = new DatasetImporter();
             importer.importData(inDbDir, inputFile);
+
+            long endImport = System.nanoTime();
+            double importTimeSec = (endImport - startImport) / 1_000_000.0;
 
             inDb.beginRead();
             outDb.beginWrite();
@@ -72,6 +81,8 @@ public class ConversionEngine {
             Map<String, Integer> errorSummary = new ConcurrentHashMap<>();
 
             Logger.info("starting extraction, validation and conversion process.");
+
+            long startParse = System.nanoTime();
 
             String runId = UUID.randomUUID().toString();
             checkGraphNameCollisions(inDataset, runId);
@@ -97,6 +108,9 @@ public class ConversionEngine {
 
             Logger.info("extraction, validation and conversion process finished.");
 
+            long endParse = System.nanoTime();
+            double parseTimeSec = (endParse - startParse) / 1_000_000.0;
+
             Logger.info("valid clusters: " + validCounter.get());
             Logger.info("invalid clusters: " + invalidCounter.get());
 
@@ -108,6 +122,8 @@ public class ConversionEngine {
             }
 
             if (!validateOnly) {
+                long startExport = System.nanoTime();
+
                 Logger.info("saving converted clusters.");
                 outDb.commit();
                 Logger.info("clusters saved successfully.");
@@ -122,6 +138,11 @@ public class ConversionEngine {
                 Logger.info("committing final dataset to database.");
                 outDb.commit();
                 Logger.info("transaction committed. Output database updated successfully.");
+
+                long endExport = System.nanoTime();
+                double exportTimeSec = (endExport - startExport) / 1_000_000.0;
+
+                appendMetricsToCsv(outputFile, importTimeSec, parseTimeSec, exportTimeSec);
 
             } else {
                 Logger.info("validate-only active. Skipping migration and export.");
@@ -234,6 +255,32 @@ public class ConversionEngine {
                 }
             }
             file.delete();
+        }
+    }
+
+    private void appendMetricsToCsv(File outputFile, double loadTime, double parseTime, double exportTime) {
+        if (outputFile == null) return;
+
+        String originalPath = outputFile.getAbsolutePath();
+        String csvPath;
+
+        int dotIndex = originalPath.lastIndexOf('.');
+        if (dotIndex > 0) {
+            csvPath = originalPath.substring(0, dotIndex) + "_metrics.csv";
+        } else {
+            csvPath = originalPath + "_metrics.csv";
+        }
+
+        File csvFile = new File(csvPath);
+        boolean writeHeader = !csvFile.exists();
+
+        try (PrintWriter out = new PrintWriter(new FileWriter(csvFile, true))) {
+            if (writeHeader) {
+                out.println("Load_ms,Parse_ms,Export_ms");
+            }
+            out.printf(Locale.US, "%.6f,%.6f,%.6f\n", loadTime, parseTime, exportTime);
+        } catch (IOException e) {
+            Logger.error("Failed to write metrics to CSV: " + e.getMessage());
         }
     }
 }
