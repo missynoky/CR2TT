@@ -142,7 +142,9 @@ public class ConversionEngine {
                 long endExport = System.nanoTime();
                 double exportTimeSec = (endExport - startExport) / 1_000_000.0;
 
-                appendMetricsToCsv(outputFile, importTimeSec, parseTimeSec, exportTimeSec);
+                double totalTimeMs = (endExport - startImport) / 1_000_000.0;
+
+                appendMetricsToCsv(outputFile, importTimeSec, parseTimeSec, exportTimeSec, totalTimeMs);
 
             } else {
                 Logger.info("validate-only active. Skipping migration and export.");
@@ -258,7 +260,7 @@ public class ConversionEngine {
         }
     }
 
-    private void appendMetricsToCsv(File outputFile, double loadTime, double parseTime, double exportTime) {
+    private void appendMetricsToCsv(File outputFile, double loadTime, double parseTime, double exportTime, double totalTime) {
         if (outputFile == null) return;
 
         String originalPath = outputFile.getAbsolutePath();
@@ -276,9 +278,9 @@ public class ConversionEngine {
 
         try (PrintWriter out = new PrintWriter(new FileWriter(csvFile, true))) {
             if (writeHeader) {
-                out.println("Load_ms,Parse_ms,Export_ms");
+                out.println("Load_ms,Parse_ms,Export_ms,Total_ms");
             }
-            out.printf(Locale.US, "%.6f,%.6f,%.6f\n", loadTime, parseTime, exportTime);
+            out.printf(Locale.US, "%.6f,%.6f,%.6f,%.6f\n", loadTime, parseTime, exportTime, totalTime);
         } catch (IOException e) {
             Logger.error("Failed to write metrics to CSV: " + e.getMessage());
         }

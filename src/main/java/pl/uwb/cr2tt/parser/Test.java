@@ -14,12 +14,21 @@ public class Test {
         String inputPath = new File(baseDir, "data/input/dataset_50000_iri.ttl").getAbsolutePath();
         String outputPath = new File(baseDir, "data/output/dataset_50000_iri_reified_triple_expanded.ttl").getAbsolutePath();
 
-        int iterations = 5;
+        int iterations = 10;
         System.out.println("Start tests. File: " + new File(inputPath).getName());
 
-        for (int i = 1; i <= iterations; i++) {
-            System.out.println("Iteration: " + i);
-            File outFile = new File(outputPath);
+        for (int i = 0; i <= iterations; i++) {
+
+            String currentOutputPath = outputPath;
+
+            if (i == 0) {
+                System.out.println("Warmup");
+                currentOutputPath = outputPath.replace(".ttl", "_warmup.ttl");
+            } else {
+                System.out.println("Iteration: " + i);
+            }
+
+            File outFile = new File(currentOutputPath);
 
             try {
                 outFile.getParentFile().mkdirs();
@@ -30,13 +39,13 @@ public class Test {
 
             List<String> command = new ArrayList<>();
             command.add("java");
-            command.add("-Xmx4G");
+            command.add("-Xmx8G");
             command.add("-jar");
             command.add(jarPath);
             command.add("--input");
             command.add(inputPath);
             command.add("--output");
-            command.add(outputPath);
+            command.add(currentOutputPath);
             command.add("--verbose");
 
             // command.add("--keep-statement-type");
@@ -53,8 +62,16 @@ public class Test {
                 e.printStackTrace();
             }
 
-            if (i == 1) {
-                File savedFile = new File(outputPath.replace(".ttl", "_saved.ttl"));
+            if (i == 0) {
+                if (outFile.exists()) outFile.delete();
+
+                File warmupCsv = new File(currentOutputPath.replace(".ttl", "_metrics.csv"));
+                if (warmupCsv.exists()) warmupCsv.delete();
+
+                System.out.println("Warmup finished");
+
+            } else if (i == 1) {
+                File savedFile = new File(currentOutputPath.replace(".ttl", "_saved.ttl"));
                 if (savedFile.exists()) {
                     savedFile.delete();
                 }
@@ -63,11 +80,11 @@ public class Test {
             } else {
                 if (outFile.exists()) {
                     outFile.delete();
-                    System.out.println("Deleted iteration " + i + " file to save disk space.");
+                    System.out.println("Deleted iteration " + i);
                 }
             }
         }
 
-        System.out.println("\nEnd tests");
+        System.out.println("End tests");
     }
 }
