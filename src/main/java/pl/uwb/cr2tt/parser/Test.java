@@ -24,19 +24,29 @@ public class Test {
         String jarPath = new File(baseDir, "target/rdf12-reif.jar").getAbsolutePath();
         String inputPath = new File(baseDir, "data/input/dataset_50000_iri.ttl").getAbsolutePath();
 
+        File inFile = new File(inputPath);
+        String inName = inFile.getName();
+        String baseInputName = inName;
+        int dotIndex = inName.lastIndexOf('.');
+        if (dotIndex > 0) {
+            baseInputName = inName.substring(0, dotIndex);
+        }
+
         int iterations = 10;
-        System.out.println("Start tests. File: " + new File(inputPath).getName());
+        System.out.println("Start tests. File: " + inName);
 
         Variant[] variants = new Variant[]{
-                new Variant("dataset_50000_iri_reified_triple_expanded.ttl"),
-                new Variant("dataset_50000_iri_reified_triple_expanded_ks.ttl", "--keep-statement-type"),
-                new Variant("dataset_50000_iri_annotated_triple_expanded.ttl", "--mode", "ANNOTATED_TRIPLE_EXPANDED", "--allow-asserting-conversion"),
-                new Variant("dataset_50000_iri_annotated_triple_expanded_ks.ttl", "--mode", "ANNOTATED_TRIPLE_EXPANDED", "--allow-asserting-conversion", "--keep-statement-type")
+                new Variant("_reified_triple_expanded.ttl"),
+                new Variant("_reified_triple_expanded_ks.ttl", "--keep-statement-type"),
+                new Variant("_annotated_triple_expanded.ttl", "--mode", "ANNOTATED_TRIPLE_EXPANDED", "--allow-asserting-conversion"),
+                new Variant("_annotated_triple_expanded_ks.ttl", "--mode", "ANNOTATED_TRIPLE_EXPANDED", "--allow-asserting-conversion", "--keep-statement-type")
         };
 
         for (Variant variant : variants) {
-            String outputPath = new File(baseDir, "data/output/" + variant.outputSuffix).getAbsolutePath();
-            System.out.println("Testing variant: " + variant.outputSuffix);
+            String outputFileName = baseInputName + variant.outputSuffix;
+            String outputPath = new File(baseDir, "data/output/" + outputFileName).getAbsolutePath();
+
+            System.out.println("Testing variant: " + outputFileName);
 
             for (int i = 0; i <= iterations; i++) {
 
