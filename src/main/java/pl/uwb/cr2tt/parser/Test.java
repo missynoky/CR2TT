@@ -22,7 +22,7 @@ public class Test {
         String baseDir = System.getProperty("user.dir");
 
         String jarPath = new File(baseDir, "target/rdf12-reif.jar").getAbsolutePath();
-        String inputPath = new File(baseDir, "data/input/dataset_50000_iri.ttl").getAbsolutePath();
+        String inputPath = new File(baseDir, "data/input/dataset_1000000_bnode.ttl").getAbsolutePath();
 
         File inFile = new File(inputPath);
         String inName = inFile.getName();
@@ -36,10 +36,14 @@ public class Test {
         System.out.println("Start tests. File: " + inName);
 
         Variant[] variants = new Variant[]{
-                new Variant("_reified_triple_expanded.ttl"),
-                new Variant("_reified_triple_expanded_ks.ttl", "--keep-statement-type"),
-                new Variant("_annotated_triple_expanded.ttl", "--mode", "ANNOTATED_TRIPLE_EXPANDED", "--allow-asserting-conversion"),
-                new Variant("_annotated_triple_expanded_ks.ttl", "--mode", "ANNOTATED_TRIPLE_EXPANDED", "--allow-asserting-conversion", "--keep-statement-type")
+                new Variant("_reified_triple.ttl", "--mode", "REIFIED_TRIPLE"),
+                new Variant("_reified_triple_ks.ttl", "--mode", "REIFIED_TRIPLE", "--keep-statement-type"),
+                new Variant("_annotated_triple.ttl", "--mode", "ANNOTATED_TRIPLE", "--allow-asserting-conversion"),
+                new Variant("_annotated_triple_ks.ttl", "--mode", "ANNOTATED_TRIPLE", "--allow-asserting-conversion", "--keep-statement-type")
+//                new Variant("_reified_triple_expanded.ttl"),
+//                new Variant("_reified_triple_expanded_ks.ttl", "--keep-statement-type"),
+//                new Variant("_annotated_triple_expanded.ttl", "--mode", "ANNOTATED_TRIPLE_EXPANDED", "--allow-asserting-conversion"),
+//                new Variant("_annotated_triple_expanded_ks.ttl", "--mode", "ANNOTATED_TRIPLE_EXPANDED", "--allow-asserting-conversion", "--keep-statement-type")
         };
 
         for (Variant variant : variants) {
@@ -70,6 +74,7 @@ public class Test {
 
                 List<String> command = new ArrayList<>();
                 command.add("java");
+                command.add("-Xms8G");
                 command.add("-Xmx8G");
                 command.add("-jar");
                 command.add(jarPath);

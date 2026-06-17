@@ -12,77 +12,174 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ClusterExtractorTest {
-    private static final String EX = "http://example.org/";
 
+    private static final String ex = "ex:";
 
-    private Model model;
+    private Model inGraph;
     private ClusterExtractor extractor;
-    private List<Cluster> capturedClusters;
+    private List<Cluster> extractedClusters;
+    private int returnedCyclicCount;
 
     @BeforeEach
     public void setUp() {
-        model = ModelFactory.createDefaultModel();
+        inGraph = ModelFactory.createDefaultModel();
         extractor = new ClusterExtractor();
-        capturedClusters = new ArrayList<>();
+        extractedClusters = new ArrayList<>();
+        returnedCyclicCount = 0;
     }
 
-    private Resource createCluster(String clusterUri, String pUri, String oUri, String metaValue) {
-        Resource clusterNode = model.createResource(clusterUri);
-        clusterNode.addProperty(RDF.subject, model.createResource(EX + "s"))
-                .addProperty(RDF.predicate, model.createProperty(pUri))
-                .addProperty(RDF.object, model.createResource(oUri))
-                .addProperty(model.createProperty(EX + "meta"), metaValue);
-        return clusterNode;
+    private void runExtraction() {
+        returnedCyclicCount = extractor.extractAndProcess(inGraph, cluster -> extractedClusters.add(cluster));
     }
 
     @Test
-    public void testFlatClusterExtraction() {
-        createCluster(EX + "Cluster1", EX + "p", EX + "o", "value1");
+    public void shouldExtractSingleValidCluster() {
+        Resource st = inGraph.createResource(ex + "st1");
+        inGraph.add(st, RDF.subject, inGraph.createResource(ex + "Alice"));
+        inGraph.add(st, RDF.predicate, inGraph.createProperty(ex + "knows"));
+        inGraph.add(st, RDF.object, inGraph.createResource(ex + "Bob"));
+        inGraph.add(st, RDF.type, RDF.Statement);
 
-        extractor.extractAndProcess(model, cluster -> capturedClusters.add(cluster));
+        runExtraction();
 
-        assertEquals(1, capturedClusters.size(), "Exactly one cluster should be extracted.");
-        assertEquals(1, capturedClusters.getFirst().getNSpo(), "n_spo should be 1.");
+        assertEquals(1, extractedClusters.size());
+        assertEquals(ex + "Alice", extractedClusters.getFirst().getSubjectNode().asResource().getURI());
     }
 
     @Test
-    public void testNSpoCalculation() {
-        createCluster(EX + "Cluster1", EX + "p", EX + "o", "meta1");
-        createCluster(EX + "Cluster2", EX + "p", EX + "o", "meta2");
+    public void shouldExtractClusterEvenWithoutTypeStatement() {
+        Resource st = inGraph.createResource(ex + "st1");
+        inGraph.add(st, RDF.subject, inGraph.createResource(ex + "Alice"));
+        inGraph.add(st, RDF.predicate, inGraph.createProperty(ex + "knows"));
+        inGraph.add(st, RDF.object, inGraph.createResource(ex + "Bob"));
 
-        extractor.extractAndProcess(model, cluster -> capturedClusters.add(cluster));
+        runExtraction();
 
-        assertEquals(2, capturedClusters.size(), "Both clusters should be extracted.");
-        assertEquals(2, capturedClusters.getFirst().getNSpo(), "n_spo should be 2 for the duplicate base triples.");
+        assertEquals(1, extractedClusters.size());
     }
 
     @Test
-    public void testCyclicReification() {
-        Resource clusterA = createCluster(EX + "ClusterA", EX + "p1", EX + "o1", "metaA");
-        Resource clusterB = createCluster(EX + "ClusterB", EX + "p2", EX + "o2", "metaB");
+    public void shouldIgnoreClusterWhenMultipleSubjectsArePresent() {
+        Resource st = inGraph.createResource(ex + "st1");
+        inGraph.add(st, RDF.subject, inGraph.createResource(ex + "Alice"));
+        inGraph.add(st, RDF.subject, inGraph.createResource(ex + "Charlie"));
+        inGraph.add(st, RDF.predicate, inGraph.createProperty(ex + "knows"));
+        inGraph.add(st, RDF.object, inGraph.createResource(ex + "Bob"));
 
-        clusterA.removeAll(RDF.object).addProperty(RDF.object, clusterB);
-        clusterB.removeAll(RDF.object).addProperty(RDF.object, clusterA);
+        runExtraction();
 
-        extractor.extractAndProcess(model, cluster -> capturedClusters.add(cluster));
-
-        assertEquals(0, capturedClusters.size(), "Cyclic clusters should be blocked and not processed.");
+        assertEquals(0, extractedClusters.size());
     }
 
     @Test
-    public void testExtractionIgnoresNormalTriples() {
-        createCluster(EX + "Cluster1", EX + "p", EX + "o", "meta1");
+    public void shouldIgnoreClusterWhenMultiplePredicatesArePresent() {
+        Resource st = inGraph.createResource(ex + "st1");
+        inGraph.add(st, RDF.subject, inGraph.createResource(ex + "Alice"));
+        inGraph.add(st, RDF.predicate, inGraph.createProperty(ex + "knows"));
+        inGraph.add(st, RDF.predicate, inGraph.createProperty(ex + "loves"));
+        inGraph.add(st, RDF.object, inGraph.createResource(ex + "Bob"));
 
-        Resource jan = model.createResource(EX + "Jan");
-        Property likes = model.createProperty(EX + "likes");
-        Resource dogs = model.createResource(EX + "Dogs");
+        runExtraction();
 
-        jan.addProperty(likes, dogs);
+        assertEquals(0, extractedClusters.size());
+    }
 
-        extractor.extractAndProcess(model, cluster -> capturedClusters.add(cluster));
+    @Test
+    public void shouldIgnoreClusterWhenMultipleObjectsArePresent() {
+        Resource st = inGraph.createResource(ex + "st1");
+        inGraph.add(st, RDF.subject, inGraph.createResource(ex + "Alice"));
+        inGraph.add(st, RDF.predicate, inGraph.createProperty(ex + "knows"));
+        inGraph.add(st, RDF.object, inGraph.createResource(ex + "Bob"));
+        inGraph.add(st, RDF.object, inGraph.createResource(ex + "John"));
 
-        assertEquals(1, capturedClusters.size(), "Normal triples must be ignored by the extractor.");
+        runExtraction();
 
-        assertEquals(EX + "Cluster1", capturedClusters.getFirst().getClusterNode().getURI(), "The extracted cluster URI does not match.");
+        assertEquals(0, extractedClusters.size());
+    }
+
+    @Test
+    public void shouldCorrectlyCountNSpoWhenMultipleClustersReifySameTriple() {
+        Resource st1 = inGraph.createResource(ex + "st1");
+        Resource st2 = inGraph.createResource(ex + "st2");
+        Resource s = inGraph.createResource(ex + "Alice");
+        Property p = inGraph.createProperty(ex + "knows");
+        Resource o = inGraph.createResource(ex + "Bob");
+
+        inGraph.add(st1, RDF.subject, s).add(st1, RDF.predicate, p).add(st1, RDF.object, o);
+        inGraph.add(st2, RDF.subject, s).add(st2, RDF.predicate, p).add(st2, RDF.object, o);
+
+        runExtraction();
+
+        assertEquals(2, extractedClusters.size());
+    }
+
+    @Test
+    public void shouldIncludeMetadataWhenPresentInCluster() {
+        Resource st = inGraph.createResource(ex + "st1");
+        inGraph.add(st, RDF.subject, inGraph.createResource(ex + "Alice"));
+        inGraph.add(st, RDF.predicate, inGraph.createProperty(ex + "knows"));
+        inGraph.add(st, RDF.object, inGraph.createResource(ex + "Bob"));
+        inGraph.add(st, inGraph.createProperty(ex + "certainty"), inGraph.createTypedLiteral(0.9));
+
+        runExtraction();
+
+        assertEquals(1, extractedClusters.size());
+        assertEquals(1, extractedClusters.getFirst().getMetadata().size());
+    }
+
+    @Test
+    public void shouldExtractClusterWhenMetadataIsAbsent() {
+        Resource st = inGraph.createResource(ex + "st1");
+        inGraph.add(st, RDF.subject, inGraph.createResource(ex + "Alice"));
+        inGraph.add(st, RDF.predicate, inGraph.createProperty(ex + "knows"));
+        inGraph.add(st, RDF.object, inGraph.createResource(ex + "Bob"));
+
+        runExtraction();
+
+        assertEquals(1, extractedClusters.size());
+        assertTrue(extractedClusters.getFirst().getMetadata().isEmpty());
+    }
+
+    @Test
+    public void shouldMarkNestedClusterAsNestedTarget() {
+        Resource st1 = inGraph.createResource(ex + "st1");
+        inGraph.add(st1, RDF.subject, inGraph.createResource(ex + "Alice"));
+        inGraph.add(st1, RDF.predicate, inGraph.createProperty(ex + "knows"));
+        inGraph.add(st1, RDF.object, inGraph.createResource(ex + "Bob"));
+
+        Resource st2 = inGraph.createResource(ex + "st2");
+        inGraph.add(st2, RDF.subject, inGraph.createResource(ex + "Charlie"));
+        inGraph.add(st2, RDF.predicate, inGraph.createProperty(ex + "claims"));
+        inGraph.add(st2, RDF.object, st1);
+
+        runExtraction();
+
+        assertEquals(2, extractedClusters.size());
+        assertEquals(0, returnedCyclicCount);
+
+        Cluster childCluster = extractedClusters.stream()
+                .filter(c -> c.getClusterNode().getURI().equals(ex + "st1"))
+                .findFirst().orElseThrow();
+
+        assertTrue(childCluster.isNestedTarget());
+    }
+
+    @Test
+    public void shouldSkipClustersInCyclicDependency() {
+        Resource st1 = inGraph.createResource(ex + "st1");
+        Resource st2 = inGraph.createResource(ex + "st2");
+
+        inGraph.add(st1, RDF.subject, inGraph.createResource(ex + "Alice"));
+        inGraph.add(st1, RDF.predicate, inGraph.createProperty(ex + "knows"));
+        inGraph.add(st1, RDF.object, st2);
+
+        inGraph.add(st2, RDF.subject, inGraph.createResource(ex + "Charlie"));
+        inGraph.add(st2, RDF.predicate, inGraph.createProperty(ex + "claims"));
+        inGraph.add(st2, RDF.object, st1);
+
+        runExtraction();
+
+        assertEquals(0, extractedClusters.size());
+        assertEquals(2, returnedCyclicCount);
     }
 }

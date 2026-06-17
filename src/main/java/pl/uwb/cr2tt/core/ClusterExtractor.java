@@ -1,6 +1,5 @@
 package pl.uwb.cr2tt.core;
 
-import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.*;
 import org.apache.jena.vocabulary.RDF;
 import pl.uwb.cr2tt.model.Cluster;
@@ -11,117 +10,113 @@ import java.util.function.Consumer;
 
 public class ClusterExtractor {
     private final Set<String> processedClusters = new HashSet<>();
+    private final Set<String> emittedClusters = new HashSet<>();
     private final Map<String, List<Cluster>> waitingRoom = new HashMap<>();
 
-    public void extractAndProcess(Model inGraph, Consumer<Cluster> clusterProcessor) {
+    private long validClusterCount = 0;
+
+    public int extractAndProcess(Model inGraph, Consumer<Cluster> clusterProcessor) {
         Logger.info("starting extraction of clusters.");
 
-        String sparqlString =
-                "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> \n" +
-                        "SELECT ?cluster ?s ?p ?o ?metaPred ?metaObj \n" +
-                        "WHERE { \n" +
-                        "  { \n" +
-                        "    SELECT ?cluster ?s ?p ?o \n" +
-                        "    WHERE { \n" +
-                        "      ?cluster rdf:subject ?s ; \n" +
-                        "               rdf:predicate ?p ; \n" +
-                        "               rdf:object ?o . \n" +
-                        "      \n" +
-                        "      FILTER NOT EXISTS { \n" +
-                        "        ?cluster rdf:subject ?s2 . \n" +
-                        "        FILTER (?s != ?s2) \n" +
-                        "      } \n" +
-                        "      \n" +
-                        "      FILTER NOT EXISTS { \n" +
-                        "        ?cluster rdf:predicate ?p2 . \n" +
-                        "        FILTER (?p != ?p2) \n" +
-                        "      } \n" +
-                        "      \n" +
-                        "      FILTER NOT EXISTS { \n" +
-                        "        ?cluster rdf:object ?o2 . \n" +
-                        "        FILTER (?o != ?o2) \n" +
-                        "      } \n" +
-                        "      \n" +
-                        "      OPTIONAL { \n" +
-                        "        ?cluster rdf:type ?type . \n" +
-                        "        FILTER(?type = rdf:Statement) \n" +
-                        "      } \n" +
-                        "    } GROUP BY ?cluster ?s ?p ?o \n" +
-                        "    HAVING (COUNT(?type) <= 1 && (isIRI(?s) || isBlank(?s)) && isIRI(?p) && (isIRI(?o) || isBlank(?o) || isLiteral(?o))) \n" +
-                        "  } \n" +
-                        "  OPTIONAL { \n" +
-                        "    ?cluster ?metaPred ?metaObj . \n" +
-                        "    FILTER (?metaPred != rdf:subject && ?metaPred != rdf:predicate && ?metaPred != rdf:object) \n" +
-                        "    FILTER (!(?metaPred = rdf:type && ?metaObj = rdf:Statement)) \n" +
-                        "  } \n" +
-                        "} ORDER BY ?cluster";
+        long rowCount = 0;
 
-        Logger.info("compiling SPARQL query.");
-        try (QueryExecution qexec = QueryExecution.model(inGraph).query(QueryFactory.create(sparqlString)).build()) {
+        StmtIterator candidates = inGraph.listStatements(null, RDF.subject, (RDFNode) null);
 
-            Logger.info("executing query.");
-            ResultSet results = qexec.execSelect();
-            Logger.info("query executed successfully.");
+        try {
+            while (candidates.hasNext()) {
+                Statement stmt = candidates.next();
+                Resource cNode = stmt.getSubject();
 
-            Resource lastClusterNode = null;
-            Resource currentS = null;
-            Property currentP = null;
-            RDFNode currentO = null;
-            Set<Statement> metadata = new HashSet<>();
-            long rowCount = 0;
-            long clusterCount = 0;
-
-            while (results.hasNext()) {
                 rowCount++;
-                if (rowCount == 1) {
-                    Logger.info("global sort finished.");
+                if (rowCount % 50000 == 0) {
+                    Logger.info("scanned potential cluster nodes: " + rowCount);
                 }
 
-                if (rowCount % 100000 == 0) {
-                    Logger.info("processed row: " + rowCount);
+                String cNodeId = cNode.isAnon() ? cNode.getId().toString() : cNode.getURI();
+                if (processedClusters.contains(cNodeId)) {
+                    continue;
                 }
 
-                QuerySolution soln = results.nextSolution();
-                Resource cNode = soln.getResource("cluster");
+                processedClusters.add(cNodeId);
 
-                if (lastClusterNode != null && !cNode.equals(lastClusterNode)) {
-                    clusterCount++;
-                    buildAndProcessCluster(inGraph, lastClusterNode, currentS, currentP, currentO, metadata, clusterProcessor);
-                    metadata = new HashSet<>();
-                }
-
-                lastClusterNode = cNode;
-                currentS = soln.getResource("s");
-                currentP = ResourceFactory.createProperty(soln.getResource("p").getURI());
-                currentO = soln.get("o");
-
-                if (soln.contains("metaPred") && soln.contains("metaObj")) {
-                    Property mPred = ResourceFactory.createProperty(soln.getResource("metaPred").getURI());
-                    RDFNode mObj = soln.get("metaObj");
-                    metadata.add(ResourceFactory.createStatement(cNode, mPred, mObj));
-                }
+                extractAndValidateSingleCluster(cNode, inGraph, clusterProcessor);
             }
-
-            if (lastClusterNode != null) {
-                clusterCount++;
-                buildAndProcessCluster(inGraph, lastClusterNode, currentS, currentP, currentO, metadata, clusterProcessor);
-            }
-
-            Logger.info("finished reading stream. Processed rows: " + rowCount + ", extracted clusters: " + clusterCount);
-
-            if (!waitingRoom.isEmpty()) {
-                int cyclicCount = waitingRoom.values().stream().mapToInt(List::size).sum();
-                Logger.error("cyclic reification omitted due to loop detection. Skipped clusters: " + cyclicCount);
-            }
+        } finally {
+            candidates.close();
         }
+
+        Logger.info("finished reading stream. Valid extracted clusters: " + validClusterCount);
+
+        int cyclicCount = 0;
+        if (!waitingRoom.isEmpty()) {
+            cyclicCount = waitingRoom.values().stream().mapToInt(List::size).sum();
+            Logger.error("cyclic reification omitted due to loop detection. Skipped clusters: " + cyclicCount);
+        }
+
+        return cyclicCount;
+    }
+
+    private void extractAndValidateSingleCluster(Resource cNode, Model inGraph, Consumer<Cluster> clusterProcessor) {
+        StmtIterator props = inGraph.listStatements(cNode, null, (RDFNode) null);
+
+        int sCount = 0, pCount = 0, oCount = 0, stmtCount = 0;
+        Resource s = null;
+        Property p = null;
+        RDFNode o = null;
+        Set<Statement> metadata = new HashSet<>();
+
+        try {
+            while (props.hasNext()) {
+                Statement pStmt = props.next();
+                Property pred = pStmt.getPredicate();
+                RDFNode obj = pStmt.getObject();
+
+                if (pred.equals(RDF.subject)) {
+                    sCount++;
+                    if (obj.isResource()) s = obj.asResource();
+                } else if (pred.equals(RDF.predicate)) {
+                    pCount++;
+                    if (obj.isResource() && obj.asResource().isURIResource()) {
+                        p = ResourceFactory.createProperty(obj.asResource().getURI());
+                    }
+                } else if (pred.equals(RDF.object)) {
+                    oCount++;
+                    o = obj;
+                } else if (pred.equals(RDF.type) && obj.equals(RDF.Statement)) {
+                    stmtCount++;
+                } else {
+                    metadata.add(pStmt);
+                }
+            }
+        } finally {
+            props.close();
+        }
+
+        if (sCount != 1 || pCount != 1 || oCount != 1 || stmtCount > 1) {
+            return;
+        }
+
+        if (s == null || p == null || o == null) {
+            return;
+        }
+
+        if (!isValidSubject(s) || !isValidPredicate(p) || !isValidObject(o)) {
+            return;
+        }
+
+        validClusterCount++;
+
+        buildAndProcessCluster(inGraph, cNode, s, p, o, metadata, clusterProcessor);
     }
 
     private void buildAndProcessCluster(Model inGraph, Resource cNode, Resource s, Property p, RDFNode o,
                                         Set<Statement> metadata, Consumer<Cluster> clusterProcessor) {
-        int nSpo = calculateNSpo(inGraph, s, p, o);
+
+        int nSpo = calculateNSpo(inGraph, cNode, s, p, o);
+
         boolean isLocal = !inGraph.contains(null, null, cNode);
         boolean inGIn = inGraph.contains(s, p, o);
-        boolean isNestedTarget = false;
+        boolean isNestedTarget = inGraph.contains(null, null, cNode);
 
         Cluster cluster = new Cluster(cNode, s, p, o, metadata, nSpo, inGIn, isLocal, isNestedTarget);
         evaluateDependencyAndProcess(cluster, inGraph, clusterProcessor);
@@ -131,16 +126,19 @@ public class ClusterExtractor {
         Resource s = cluster.getSubjectNode();
         RDFNode o = cluster.getObjectNode();
 
-        boolean isSCluster = inGraph.contains(s, RDF.subject, (RDFNode) null);
-        boolean isOCluster = o.isResource() && inGraph.contains(o.asResource(), RDF.subject, (RDFNode) null);
+        boolean isSCluster = isValidCluster(inGraph, s);
+        boolean isOCluster = o.isResource() && isValidCluster(inGraph, o.asResource());
 
-        boolean waitingForS = isSCluster && !processedClusters.contains(s.toString());
-        boolean waitingForO = isOCluster && !processedClusters.contains(o.toString());
+        String sId = getNodeId(s);
+        String oId = getNodeId(o);
+
+        boolean waitingForS = isSCluster && !emittedClusters.contains(sId);
+        boolean waitingForO = isOCluster && !emittedClusters.contains(oId);
 
         if (waitingForS) {
-            waitingRoom.computeIfAbsent(s.toString(), _ -> new ArrayList<>()).add(cluster);
+            waitingRoom.computeIfAbsent(sId, _ -> new ArrayList<>()).add(cluster);
         } else if (waitingForO) {
-            waitingRoom.computeIfAbsent(o.toString(), _ -> new ArrayList<>()).add(cluster);
+            waitingRoom.computeIfAbsent(oId, _ -> new ArrayList<>()).add(cluster);
         } else {
             processRecursively(cluster, inGraph, clusterProcessor);
         }
@@ -149,8 +147,10 @@ public class ClusterExtractor {
     private void processRecursively(Cluster cluster, Model inGraph, Consumer<Cluster> clusterProcessor) {
         clusterProcessor.accept(cluster);
 
-        String thisClusterId = cluster.getClusterNode().toString();
-        processedClusters.add(thisClusterId);
+        Resource cNode = cluster.getClusterNode();
+        String thisClusterId = getNodeId(cNode);
+
+        emittedClusters.add(thisClusterId);
 
         List<Cluster> waitingParents = waitingRoom.remove(thisClusterId);
 
@@ -161,17 +161,89 @@ public class ClusterExtractor {
         }
     }
 
-    private int calculateNSpo(Model inGraph, Resource s, Property p, RDFNode o) {
-        int count = 0;
-        StmtIterator it = inGraph.listStatements(null, RDF.subject, s);
+    private boolean isValidCluster(Model inGraph, Resource cNode) {
+        if (cNode == null || !inGraph.contains(cNode, RDF.subject, (RDFNode) null)) return false;
 
-        while (it.hasNext()) {
-            Resource potentialCluster = it.next().getSubject();
-            if (inGraph.contains(potentialCluster, RDF.predicate, p) &&
-                    inGraph.contains(potentialCluster, RDF.object, o)) {
-                count++;
+        int sCount = 0, pCount = 0, oCount = 0, stmtCount = 0;
+        Resource s = null; Property p = null; RDFNode o = null;
+
+        StmtIterator props = inGraph.listStatements(cNode, null, (RDFNode) null);
+        try {
+            while (props.hasNext()) {
+                Statement pStmt = props.next();
+                Property pred = pStmt.getPredicate();
+                RDFNode obj = pStmt.getObject();
+
+                if (pred.equals(RDF.subject)) {
+                    sCount++;
+                    if (obj.isResource()) s = obj.asResource();
+                } else if (pred.equals(RDF.predicate)) {
+                    pCount++;
+                    if (obj.isResource() && obj.asResource().isURIResource()) {
+                        p = ResourceFactory.createProperty(obj.asResource().getURI());
+                    }
+                } else if (pred.equals(RDF.object)) {
+                    oCount++;
+                    o = obj;
+                } else if (pred.equals(RDF.type) && obj.equals(RDF.Statement)) {
+                    stmtCount++;
+                }
             }
+        } finally {
+            props.close();
+        }
+
+        if (sCount != 1 || pCount != 1 || oCount != 1 || stmtCount > 1) return false;
+        if (s == null || p == null || o == null) return false;
+        if (!isValidSubject(s) || !isValidPredicate(p) || !isValidObject(o)) return false;
+
+        return true;
+    }
+
+    private int calculateNSpo(Model inGraph, Resource currentCluster, Resource s, Property p, RDFNode o) {
+        int count = 1;
+
+        StmtIterator it = inGraph.listStatements(null, RDF.subject, s);
+        try {
+            while (it.hasNext()) {
+                Resource potentialCluster = it.next().getSubject();
+
+                if (!potentialCluster.equals(currentCluster)) {
+                    if (inGraph.contains(potentialCluster, RDF.predicate, p) &&
+                            inGraph.contains(potentialCluster, RDF.object, o)) {
+
+                        count++;
+                        if (count > 1) {
+                            return count;
+                        }
+                    }
+                }
+            }
+        } finally {
+            it.close();
         }
         return count;
+    }
+
+    private String getNodeId(RDFNode node) {
+        if (node == null) return "";
+        if (node.isAnon()) {
+            return node.asResource().getId().toString();
+        } else if (node.isResource()) {
+            return node.asResource().getURI();
+        }
+        return "";
+    }
+
+    private boolean isValidSubject(Resource s) {
+        return s.isURIResource() || s.isAnon();
+    }
+
+    private boolean isValidPredicate(Property p) {
+        return p.isURIResource();
+    }
+
+    private boolean isValidObject(RDFNode o) {
+        return o.isURIResource() || o.isAnon() || o.isLiteral();
     }
 }

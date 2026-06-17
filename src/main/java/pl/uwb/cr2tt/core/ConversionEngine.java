@@ -199,7 +199,7 @@ public class ConversionEngine {
                               boolean allowAssertingConversion, boolean validateOnly,
                               AtomicInteger validCounter, AtomicInteger invalidCounter, Map<String, Integer> errorSummary,
                               Model tombstoneGraph, boolean keepStatementType) {
-        ClusterExtractorNew extractor = new ClusterExtractorNew();
+        ClusterExtractor extractor = new ClusterExtractor();
         ClusterValidator validator = new ClusterValidator();
         ClusterConverter converter = new ClusterConverter();
         Map<String, Resource> resolvedTripleTerms = new HashMap<>();

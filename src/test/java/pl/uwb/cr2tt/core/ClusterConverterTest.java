@@ -4,7 +4,6 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.riot.RDFDataMgr;
-import org.apache.jena.riot.RDFFormat;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import pl.uwb.cr2tt.model.ConversionMode;
@@ -20,7 +19,7 @@ class ClusterConverterTest {
         Model inModel = RDFDataMgr.loadModel(inputFilePath);
         Model actualModel = ModelFactory.createDefaultModel();
 
-        ClusterExtractorNew extractor = new ClusterExtractorNew();
+        ClusterExtractor extractor = new ClusterExtractor();
         ClusterConverter converter = new ClusterConverter();
         Map<String, Resource> resolvedTerms = new HashMap<>();
 
