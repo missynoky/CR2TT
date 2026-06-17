@@ -20,105 +20,130 @@ public class Test {
 
     public static void main(String[] args) {
         String baseDir = System.getProperty("user.dir");
-
         String jarPath = new File(baseDir, "target/rdf12-reif.jar").getAbsolutePath();
-        String inputPath = new File(baseDir, "data/input/dataset_1000000_bnode.ttl").getAbsolutePath();
+        File inputDir = new File(baseDir, "data/input");
 
-        File inFile = new File(inputPath);
-        String inName = inFile.getName();
-        String baseInputName = inName;
-        int dotIndex = inName.lastIndexOf('.');
-        if (dotIndex > 0) {
-            baseInputName = inName.substring(0, dotIndex);
+        File[] inputFiles = inputDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".ttl"));
+
+        if (inputFiles == null || inputFiles.length == 0) {
+            System.out.println("Nie znaleziono plików wejściowych w katalogu: " + inputDir.getAbsolutePath());
+            return;
         }
 
         int iterations = 10;
-        System.out.println("Start tests. File: " + inName);
 
-        Variant[] variants = new Variant[]{
+        Variant[] bnodeVariants = new Variant[]{
                 new Variant("_reified_triple.ttl", "--mode", "REIFIED_TRIPLE"),
                 new Variant("_reified_triple_ks.ttl", "--mode", "REIFIED_TRIPLE", "--keep-statement-type"),
                 new Variant("_annotated_triple.ttl", "--mode", "ANNOTATED_TRIPLE", "--allow-asserting-conversion"),
                 new Variant("_annotated_triple_ks.ttl", "--mode", "ANNOTATED_TRIPLE", "--allow-asserting-conversion", "--keep-statement-type")
-//                new Variant("_reified_triple_expanded.ttl"),
-//                new Variant("_reified_triple_expanded_ks.ttl", "--keep-statement-type"),
-//                new Variant("_annotated_triple_expanded.ttl", "--mode", "ANNOTATED_TRIPLE_EXPANDED", "--allow-asserting-conversion"),
-//                new Variant("_annotated_triple_expanded_ks.ttl", "--mode", "ANNOTATED_TRIPLE_EXPANDED", "--allow-asserting-conversion", "--keep-statement-type")
         };
 
-        for (Variant variant : variants) {
-            String outputFileName = baseInputName + variant.outputSuffix;
-            String outputPath = new File(baseDir, "data/output/" + outputFileName).getAbsolutePath();
+        Variant[] iriVariants = new Variant[]{
+                new Variant("_reified_triple_expanded.ttl"),
+                new Variant("_reified_triple_expanded_ks.ttl", "--keep-statement-type"),
+                new Variant("_annotated_triple_expanded.ttl", "--mode", "ANNOTATED_TRIPLE_EXPANDED", "--allow-asserting-conversion"),
+                new Variant("_annotated_triple_expanded_ks.ttl", "--mode", "ANNOTATED_TRIPLE_EXPANDED", "--allow-asserting-conversion", "--keep-statement-type")
+        };
 
-            System.out.println("Testing variant: " + outputFileName);
+        System.out.println(inputFiles.length + " pliki");
 
-            for (int i = 0; i <= iterations; i++) {
+        for (File inFile : inputFiles) {
+            String inputPath = inFile.getAbsolutePath();
+            String inName = inFile.getName();
 
-                String currentOutputPath = outputPath;
+            System.out.println("Start tests. File: " + inName);
 
-                if (i == 0) {
-                    System.out.println("Warmup");
-                    currentOutputPath = outputPath.replace(".ttl", "_warmup.ttl");
-                } else {
-                    System.out.println("Iteration: " + i);
-                }
+            String baseInputName = inName;
+            int dotIndex = inName.lastIndexOf('.');
+            if (dotIndex > 0) {
+                baseInputName = inName.substring(0, dotIndex);
+            }
 
-                File outFile = new File(currentOutputPath);
+            Variant[] variantsToRun;
+            if (inName.contains("bnode")) {
+                variantsToRun = bnodeVariants;
+            } else if (inName.contains("iri")) {
+                variantsToRun = iriVariants;
+            } else {
+                System.out.println("Pominięto plik: " + inName);
+                continue;
+            }
 
-                try {
-                    outFile.getParentFile().mkdirs();
-                    outFile.createNewFile();
-                } catch (IOException e) {
-                    System.out.println("File error: " + e.getMessage());
-                }
+            for (Variant variant : variantsToRun) {
+                String outputFileName = baseInputName + variant.outputSuffix;
+                String outputPath = new File(baseDir, "data/output/test/" + outputFileName).getAbsolutePath();
 
-                List<String> command = new ArrayList<>();
-                command.add("java");
-                command.add("-Xms8G");
-                command.add("-Xmx8G");
-                command.add("-jar");
-                command.add(jarPath);
-                command.add("--input");
-                command.add(inputPath);
-                command.add("--output");
-                command.add(currentOutputPath);
-                command.add("--verbose");
+                System.out.println("\nTesting variant: " + outputFileName);
 
-                command.addAll(Arrays.asList(variant.flags));
+                for (int i = 0; i <= iterations; i++) {
 
-                try {
-                    ProcessBuilder pb = new ProcessBuilder(command);
-                    pb.inheritIO();
-                    Process process = pb.start();
-                    process.waitFor();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                    String currentOutputPath = outputPath;
 
-                if (i == 0) {
-                    if (outFile.exists()) outFile.delete();
-
-                    File warmupCsv = new File(currentOutputPath.replace(".ttl", "_metrics.csv"));
-                    if (warmupCsv.exists()) warmupCsv.delete();
-
-                    System.out.println("Warmup finished");
-
-                } else if (i == 1) {
-                    File savedFile = new File(currentOutputPath.replace(".ttl", "_saved.ttl"));
-                    if (savedFile.exists()) {
-                        savedFile.delete();
+                    if (i == 0) {
+                        System.out.println("Warmup");
+                        currentOutputPath = outputPath.replace(".ttl", "_warmup.ttl");
+                    } else {
+                        System.out.println("Iteration: " + i);
                     }
-                    outFile.renameTo(savedFile);
-                    System.out.println("Saved iteration 1 file as: " + savedFile.getName());
-                } else {
-                    if (outFile.exists()) {
-                        outFile.delete();
-                        System.out.println("Deleted iteration " + i);
+
+                    File outFile = new File(currentOutputPath);
+
+                    try {
+                        outFile.getParentFile().mkdirs();
+                        outFile.createNewFile();
+                    } catch (IOException e) {
+                        System.out.println("File error: " + e.getMessage());
+                    }
+
+                    List<String> command = new ArrayList<>();
+                    command.add("java");
+                    command.add("-Xms20G");
+                    command.add("-Xmx20G");
+                    command.add("-jar");
+                    command.add(jarPath);
+                    command.add("--input");
+                    command.add(inputPath);
+                    command.add("--output");
+                    command.add(currentOutputPath);
+                    command.add("--verbose");
+
+                    command.addAll(Arrays.asList(variant.flags));
+
+                    try {
+                        ProcessBuilder pb = new ProcessBuilder(command);
+                        pb.inheritIO();
+                        Process process = pb.start();
+                        process.waitFor();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    if (i == 0) {
+                        if (outFile.exists()) outFile.delete();
+
+                        File warmupCsv = new File(currentOutputPath.replace(".ttl", "_metrics.csv"));
+                        if (warmupCsv.exists()) warmupCsv.delete();
+
+                        System.out.println("Warmup finished");
+
+                    } else if (i == 1) {
+                        File savedFile = new File(currentOutputPath.replace(".ttl", "_saved.ttl"));
+                        if (savedFile.exists()) {
+                            savedFile.delete();
+                        }
+                        outFile.renameTo(savedFile);
+                        System.out.println("Saved iteration 1 file as: " + savedFile.getName());
+                    } else {
+                        if (outFile.exists()) {
+                            outFile.delete();
+                            System.out.println("Deleted iteration " + i);
+                        }
                     }
                 }
             }
         }
 
-        System.out.println("End tests");
+        System.out.println("\nEnd tests for all files.");
     }
 }
