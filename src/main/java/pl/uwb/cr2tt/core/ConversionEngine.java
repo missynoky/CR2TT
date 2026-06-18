@@ -28,6 +28,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ConversionEngine {
     private final ConversionContext context;
@@ -84,14 +85,18 @@ public class ConversionEngine {
 
             long startParse = System.nanoTime();
 
+            AtomicLong totalValidationTime = new AtomicLong(0);
+            AtomicLong totalConversionTime = new AtomicLong(0);
+
             String runId = UUID.randomUUID().toString();
             checkGraphNameCollisions(inDataset, runId);
 
             Logger.info("processing default graph.");
             Model defaultTombstone = outDb.getNamedModel("urn:cr2tt:temp:tombstones:" + runId + ":default");
+
             processGraph(inDataset.getDefaultModel(), outDataset.getDefaultModel(), mode, baseTriplePolicy,
                     allowAssertingConversion, validateOnly, validCounter, invalidCounter, errorSummary,
-                    defaultTombstone, keepStatementType);
+                    defaultTombstone, keepStatementType, totalValidationTime, totalConversionTime);
 
             Iterator<String> graphNames = inDataset.listNames();
             while (graphNames.hasNext()) {
@@ -103,13 +108,18 @@ public class ConversionEngine {
 
                 processGraph(inDataset.getNamedModel(graphName), outDataset.getNamedModel(graphName),
                         mode, baseTriplePolicy, allowAssertingConversion, validateOnly, validCounter,
-                        invalidCounter, errorSummary, namedTombstone, keepStatementType);
+                        invalidCounter, errorSummary, namedTombstone, keepStatementType, totalValidationTime, totalConversionTime);
             }
 
             Logger.info("extraction, validation and conversion process finished.");
 
             long endParse = System.nanoTime();
-            double parseTimeSec = (endParse - startParse) / 1_000_000.0;
+            double parseTotalTimeMs = (endParse - startParse) / 1_000_000.0;
+            double validationTimeMs = totalValidationTime.get() / 1_000_000.0;
+            double conversionTimeMs = totalConversionTime.get() / 1_000_000.0;
+
+            double extractionTimeMs = parseTotalTimeMs - validationTimeMs - conversionTimeMs;
+            if (extractionTimeMs < 0) extractionTimeMs = 0.0;
 
             Logger.info("valid clusters: " + validCounter.get());
             Logger.info("invalid clusters: " + invalidCounter.get());
@@ -140,11 +150,12 @@ public class ConversionEngine {
                 Logger.info("transaction committed. Output database updated successfully.");
 
                 long endExport = System.nanoTime();
-                double exportTimeSec = (endExport - startExport) / 1_000_000.0;
+                double exportTimeMs = (endExport - startExport) / 1_000_000.0;
+                double importTimeMs = importTimeSec;
 
                 double totalTimeMs = (endExport - startImport) / 1_000_000.0;
 
-                appendMetricsToCsv(outputFile, importTimeSec, parseTimeSec, exportTimeSec, totalTimeMs);
+                appendMetricsToCsv(outputFile, importTimeMs, extractionTimeMs, validationTimeMs, conversionTimeMs, parseTotalTimeMs, exportTimeMs, totalTimeMs);
 
             } else {
                 Logger.info("validate-only active. Skipping migration and export.");
@@ -198,21 +209,29 @@ public class ConversionEngine {
     private void processGraph(Model inGraph, Model outGraph, ConversionMode mode, BaseTriplePolicy baseTriplePolicy,
                               boolean allowAssertingConversion, boolean validateOnly,
                               AtomicInteger validCounter, AtomicInteger invalidCounter, Map<String, Integer> errorSummary,
-                              Model tombstoneGraph, boolean keepStatementType) {
+                              Model tombstoneGraph, boolean keepStatementType,
+                              AtomicLong validationTimeAccumulator, AtomicLong conversionTimeAccumulator) {
         ClusterExtractor extractor = new ClusterExtractor();
         ClusterValidator validator = new ClusterValidator();
         ClusterConverter converter = new ClusterConverter();
         Map<String, Resource> resolvedTripleTerms = new HashMap<>();
 
         int cyclicCount = extractor.extractAndProcess(inGraph, cluster -> {
+
+            long valStart = System.nanoTime();
             String errorReason = validator.validateCluster(cluster, mode, baseTriplePolicy, allowAssertingConversion);
+            long valEnd = System.nanoTime();
+            validationTimeAccumulator.addAndGet(valEnd - valStart);
 
             if (errorReason == null) {
                 validCounter.incrementAndGet();
 
                 if (!validateOnly) {
+                    long convStart = System.nanoTime();
                     converter.convertCluster(cluster, mode, outGraph, resolvedTripleTerms, keepStatementType);
                     markClusterAsProcessed(cluster, tombstoneGraph);
+                    long convEnd = System.nanoTime();
+                    conversionTimeAccumulator.addAndGet(convEnd - convStart);
                 }
             } else {
                 invalidCounter.incrementAndGet();
@@ -260,7 +279,7 @@ public class ConversionEngine {
         }
     }
 
-    private void appendMetricsToCsv(File outputFile, double loadTime, double parseTime, double exportTime, double totalTime) {
+    private void appendMetricsToCsv(File outputFile, double loadTime, double extractionTime, double validationTime, double conversionTime, double parseTotalTime, double exportTime, double totalTime) {
         if (outputFile == null) return;
 
         String originalPath = outputFile.getAbsolutePath();
@@ -278,9 +297,10 @@ public class ConversionEngine {
 
         try (PrintWriter out = new PrintWriter(new FileWriter(csvFile, true))) {
             if (writeHeader) {
-                out.println("Load_ms,Parse_ms,Export_ms,Total_ms");
+                out.println("Load_ms,Extraction_ms,Validation_ms,Conversion_ms,ParseTotal_ms,Export_ms,Total_ms");
             }
-            out.printf(Locale.US, "%.6f,%.6f,%.6f,%.6f\n", loadTime, parseTime, exportTime, totalTime);
+            out.printf(Locale.US, "%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f\n",
+                    loadTime, extractionTime, validationTime, conversionTime, parseTotalTime, exportTime, totalTime);
         } catch (IOException e) {
             Logger.error("Failed to write metrics to CSV: " + e.getMessage());
         }

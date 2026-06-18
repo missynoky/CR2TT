@@ -136,9 +136,9 @@ public class ClusterExtractor {
         boolean waitingForO = isOCluster && !emittedClusters.contains(oId);
 
         if (waitingForS) {
-            waitingRoom.computeIfAbsent(sId, _ -> new ArrayList<>()).add(cluster);
+            waitingRoom.computeIfAbsent(sId, k -> new ArrayList<>()).add(cluster);
         } else if (waitingForO) {
-            waitingRoom.computeIfAbsent(oId, _ -> new ArrayList<>()).add(cluster);
+            waitingRoom.computeIfAbsent(oId, k -> new ArrayList<>()).add(cluster);
         } else {
             processRecursively(cluster, inGraph, clusterProcessor);
         }
